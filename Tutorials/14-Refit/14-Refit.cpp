@@ -378,10 +378,17 @@ void buildTopLevelAS(ID3D12DevicePtr pDevice, ID3D12GraphicsCommandListPtr pCmdL
     ID3D12DeviceRaytracingPrototypePtr pRtDevice = pDevice;
     pRtDevice->GetRaytracingAccelerationStructurePrebuildInfo(&prebuildDesc, &info);
 
-    // If this is not an update operation then we need to create the buffers, otherwise we will refit in-place
-    if (!update)
+    if (update)
     {
-        // Create the buffers
+        // If this a request for an update, then the TLAS was already used in a DispatchRay() call. We need a UAV barrier to make sure the read operation ends before updating the buffer
+        D3D12_RESOURCE_BARRIER uavBarrier = {};
+        uavBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+        uavBarrier.UAV.pResource = buffers.pResult;
+        pCmdList->ResourceBarrier(1, &uavBarrier);
+    }
+    else
+    {
+        // If this is not an update operation then we need to create the buffers, otherwise we will refit in-place
         buffers.pScratch = createBuffer(pDevice, info.ScratchDataSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, kDefaultHeapProps);
         buffers.pResult = createBuffer(pDevice, info.ResultDataMaxSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE, kDefaultHeapProps);
         buffers.pInstanceDesc = createBuffer(pDevice, sizeof(D3D12_RAYTRACING_INSTANCE_DESC) * 3, D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_GENERIC_READ, kUploadHeapProps);
@@ -444,6 +451,12 @@ void buildTopLevelAS(ID3D12DevicePtr pDevice, ID3D12GraphicsCommandListPtr pCmdL
     asDesc.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
     ID3D12CommandListRaytracingPrototypePtr pRtList = pCmdList;
     pRtList->BuildRaytracingAccelerationStructure(&asDesc);
+
+    // We need to insert a UAV barrier before using the acceleration structures in a raytracing operation
+    D3D12_RESOURCE_BARRIER uavBarrier = {};
+    uavBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+    uavBarrier.UAV.pResource = buffers.pResult;
+    pCmdList->ResourceBarrier(1, &uavBarrier);
 }
 
 void DxrSample::createAccelerationStructures()

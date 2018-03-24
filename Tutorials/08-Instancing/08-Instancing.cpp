@@ -411,6 +411,12 @@ AccelerationStructureBuffers createTopLevelAS(ID3D12DevicePtr pDevice, ID3D12Gra
     ID3D12CommandListRaytracingPrototypePtr pRtList = pCmdList;
     pRtList->BuildRaytracingAccelerationStructure(&asDesc);
 
+    // We need to insert a UAV barrier before using the acceleration structures in a raytracing operation
+    D3D12_RESOURCE_BARRIER uavBarrier = {};
+    uavBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+    uavBarrier.UAV.pResource = buffers.pResult;
+    pCmdList->ResourceBarrier(1, &uavBarrier);
+
     return buffers;
 }
 
