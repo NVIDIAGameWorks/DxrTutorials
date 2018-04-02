@@ -552,6 +552,7 @@ RootSignatureDesc createHitRootDesc()
 
     desc.desc.NumParameters = 1;
     desc.desc.pParameters = desc.rootParams.data();
+    desc.desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE;
 
     return desc;
 }
