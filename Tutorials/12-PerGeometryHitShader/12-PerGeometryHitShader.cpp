@@ -653,9 +653,9 @@ static const WCHAR* kPlaneHitGroup = L"PlaneHitGroup";
 DxilLibrary createDxilLibrary()
 {
     // Compile the shader
-    ID3DBlobPtr pRayGenShader = compileLibrary(L"Data/12-Shaders.hlsl", L"lib_6_1");
+    ID3DBlobPtr pDxilLib = compileLibrary(L"Data/12-Shaders.hlsl", L"lib_6_3");
     const WCHAR* entryPoints[] = { kRayGenShader, kMissShader, kPlaneChs, kTriangleChs };
-    return DxilLibrary(pRayGenShader, entryPoints, arraysize(entryPoints));
+    return DxilLibrary(pDxilLib, entryPoints, arraysize(entryPoints));
 }
 
 struct HitProgram

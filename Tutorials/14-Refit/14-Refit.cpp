@@ -680,7 +680,7 @@ static const WCHAR* kShadowHitGroup = L"ShadowHitGroup";
 DxilLibrary createDxilLibrary()
 {
     // Compile the shader
-    ID3DBlobPtr pRayGenShader = compileLibrary(L"Data/14-Shaders.hlsl", L"lib_6_1");
+    ID3DBlobPtr pRayGenShader = compileLibrary(L"Data/14-Shaders.hlsl", L"lib_6_3");
     const WCHAR* entryPoints[] = { kRayGenShader, kMissShader, kPlaneChs, kTriangleChs, kShadowMiss, kShadowChs };
     return DxilLibrary(pRayGenShader, entryPoints, arraysize(entryPoints));
 }
