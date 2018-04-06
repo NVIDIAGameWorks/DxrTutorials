@@ -60,7 +60,7 @@ struct IntersectionAttribs
 };
 
 [shader("closesthit")]
-void chs(inout RayPayload payload : SV_RayPayload, in IntersectionAttribs attribs)
+void chs(inout RayPayload payload, in IntersectionAttribs attribs)
 {
     float3 barycentrics = float3(1.0 - attribs.baryCrd.x - attribs.baryCrd.y, attribs.baryCrd.x, attribs.baryCrd.y);
     payload.color = A * barycentrics.x + B * barycentrics.y + C * barycentrics.z;

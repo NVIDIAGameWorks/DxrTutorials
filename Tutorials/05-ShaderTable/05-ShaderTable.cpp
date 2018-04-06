@@ -379,7 +379,7 @@ AccelerationStructureBuffers createTopLevelAS(ID3D12DevicePtr pDevice, ID3D12Gra
     buffers.pInstanceDesc->Map(0, nullptr, (void**)&pInstanceDesc);
 
     // Initialize the instance desc. We only have a single instance
-    pInstanceDesc->InstanceID = 0;                            // This value will be exposed to the shader via SV_InstanceID
+    pInstanceDesc->InstanceID = 0;                            // This value will be exposed to the shader via InstanceID()
     pInstanceDesc->InstanceContributionToHitGroupIndex = 0;   // This is the offset inside the shader-table. We only have a single geometry, so the offset 0
     pInstanceDesc->Flags = D3D12_RAYTRACING_INSTANCE_FLAG_NONE;
     mat4 m; // Identity matrix
@@ -838,7 +838,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 {
     DxrSample::UniquePtr pSample = std::make_unique<DxrSample>();
     SampleConfig config;
-    config.windowDesc.title = "Tutorial 05 - Shader Binding Table";
+    config.windowDesc.title = "Tutorial 05 - Shader Table";
     config.flags = SampleConfig::Flags::DoNotCreateDevice;
 
     Sample::run(config, pSample);
