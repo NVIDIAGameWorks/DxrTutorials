@@ -15,11 +15,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "04-RtPipelineState", "Tutor
 		{70624B07-6050-4BB7-BBBB-0AF66D3B99C8} = {70624B07-6050-4BB7-BBBB-0AF66D3B99C8}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "05-ShaderBindingTable", "Tutorials\05-ShaderBindingTable\05-ShaderBindingTable.vcxproj", "{2462132C-9878-494B-9F77-DFEFF7C76AD0}"
-	ProjectSection(ProjectDependencies) = postProject
-		{70624B07-6050-4BB7-BBBB-0AF66D3B99C8} = {70624B07-6050-4BB7-BBBB-0AF66D3B99C8}
-	EndProjectSection
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "06-Raytrace", "Tutorials\06-Raytrace\06-Raytrace.vcxproj", "{1D7C4FB1-9C77-45C3-8468-672C64CB1482}"
 	ProjectSection(ProjectDependencies) = postProject
 		{70624B07-6050-4BB7-BBBB-0AF66D3B99C8} = {70624B07-6050-4BB7-BBBB-0AF66D3B99C8}
@@ -70,6 +65,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "02-InitDXR", "Tutorials\02-
 		{70624B07-6050-4BB7-BBBB-0AF66D3B99C8} = {70624B07-6050-4BB7-BBBB-0AF66D3B99C8}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "05-ShaderTable", "Tutorials\05-ShaderTable\05-ShaderTable.vcxproj", "{2462132C-9878-494B-9F77-DFEFF7C76AD0}"
+	ProjectSection(ProjectDependencies) = postProject
+		{70624B07-6050-4BB7-BBBB-0AF66D3B99C8} = {70624B07-6050-4BB7-BBBB-0AF66D3B99C8}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -96,12 +96,6 @@ Global
 		{DD7FAE26-C4FB-4DD5-9B09-051E528A145A}.Release|x64.ActiveCfg = Release|x64
 		{DD7FAE26-C4FB-4DD5-9B09-051E528A145A}.Release|x64.Build.0 = Release|x64
 		{DD7FAE26-C4FB-4DD5-9B09-051E528A145A}.Release|x86.ActiveCfg = Release|x64
-		{2462132C-9878-494B-9F77-DFEFF7C76AD0}.Debug|x64.ActiveCfg = Debug|x64
-		{2462132C-9878-494B-9F77-DFEFF7C76AD0}.Debug|x64.Build.0 = Debug|x64
-		{2462132C-9878-494B-9F77-DFEFF7C76AD0}.Debug|x86.ActiveCfg = Debug|x64
-		{2462132C-9878-494B-9F77-DFEFF7C76AD0}.Release|x64.ActiveCfg = Release|x64
-		{2462132C-9878-494B-9F77-DFEFF7C76AD0}.Release|x64.Build.0 = Release|x64
-		{2462132C-9878-494B-9F77-DFEFF7C76AD0}.Release|x86.ActiveCfg = Release|x64
 		{1D7C4FB1-9C77-45C3-8468-672C64CB1482}.Debug|x64.ActiveCfg = Debug|x64
 		{1D7C4FB1-9C77-45C3-8468-672C64CB1482}.Debug|x64.Build.0 = Debug|x64
 		{1D7C4FB1-9C77-45C3-8468-672C64CB1482}.Debug|x86.ActiveCfg = Debug|x64
@@ -162,6 +156,12 @@ Global
 		{69C72C71-F83D-4C3F-A9C2-A1A6D75F57CB}.Release|x64.ActiveCfg = Release|x64
 		{69C72C71-F83D-4C3F-A9C2-A1A6D75F57CB}.Release|x64.Build.0 = Release|x64
 		{69C72C71-F83D-4C3F-A9C2-A1A6D75F57CB}.Release|x86.ActiveCfg = Release|x64
+		{2462132C-9878-494B-9F77-DFEFF7C76AD0}.Debug|x64.ActiveCfg = Debug|x64
+		{2462132C-9878-494B-9F77-DFEFF7C76AD0}.Debug|x64.Build.0 = Debug|x64
+		{2462132C-9878-494B-9F77-DFEFF7C76AD0}.Debug|x86.ActiveCfg = Debug|x64
+		{2462132C-9878-494B-9F77-DFEFF7C76AD0}.Release|x64.ActiveCfg = Release|x64
+		{2462132C-9878-494B-9F77-DFEFF7C76AD0}.Release|x64.Build.0 = Release|x64
+		{2462132C-9878-494B-9F77-DFEFF7C76AD0}.Release|x86.ActiveCfg = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

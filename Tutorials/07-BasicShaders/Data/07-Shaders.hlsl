@@ -42,7 +42,7 @@ void rayGen()
 }
 
 [shader("miss")]
-void miss(inout RayPayload payload : SV_RayPayload)
+void miss(inout RayPayload payload)
 {
     payload.color = float3(0.4, 0.6, 0.2);
 }
@@ -53,7 +53,7 @@ struct IntersectionAttribs
 };
 
 [shader("closesthit")]
-void chs(inout RayPayload payload : SV_RayPayload, IntersectionAttribs attribs : SV_IntersectionAttributes)
+void chs(inout RayPayload payload, in IntersectionAttribs attribs)
 {
     float3 barycentrics = float3(1.0 - attribs.baryCrd.x - attribs.baryCrd.y, attribs.baryCrd.x, attribs.baryCrd.y);
 

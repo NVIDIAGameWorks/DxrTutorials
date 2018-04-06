@@ -11,10 +11,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="05-ShaderBindingTable.cpp" />
+    <ClCompile Include="05-ShaderTable.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="05-ShaderBindingTable.h" />
+    <ClInclude Include="05-ShaderTable.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Data\05-Shaders.hlsl">
@@ -27,7 +27,7 @@
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>DXRT</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
-    <ProjectName>05-ShaderBindingTable</ProjectName>
+    <ProjectName>05-ShaderTable</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">

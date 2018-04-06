@@ -380,7 +380,7 @@ AccelerationStructureBuffers createTopLevelAS(ID3D12DevicePtr pDevice, ID3D12Gra
 
     // Initialize the instance desc. We only have a single instance
     pInstanceDesc->InstanceID = 0;                            // This value will be exposed to the shader via SV_InstanceID
-    pInstanceDesc->InstanceContributionToHitGroupIndex = 0;   // This is the offset inside the SBT. We only have a single geometry, so the offset 0
+    pInstanceDesc->InstanceContributionToHitGroupIndex = 0;   // This is the offset inside the shader-table. We only have a single geometry, so the offset 0
     pInstanceDesc->Flags = D3D12_RAYTRACING_INSTANCE_FLAG_NONE;
     mat4 m; // Identity matrix
     memcpy(pInstanceDesc->Transform, &m, sizeof(pInstanceDesc->Transform));

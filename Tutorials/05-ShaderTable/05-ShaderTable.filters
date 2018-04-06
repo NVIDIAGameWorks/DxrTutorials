@@ -6,10 +6,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="05-ShaderBindingTable.cpp" />
+    <ClCompile Include="05-ShaderTable.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="05-ShaderBindingTable.h" />
+    <ClInclude Include="05-ShaderTable.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Data\05-Shaders.hlsl">

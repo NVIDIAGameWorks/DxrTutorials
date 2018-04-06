@@ -99,7 +99,7 @@ private:
     //////////////////////////////////////////////////////////////////////////
     // Tutorial 05
     //////////////////////////////////////////////////////////////////////////
-    void createShaderBindingTable();
-    ID3D12ResourcePtr mpShaderBindingTable;
-    uint32_t mSbtEntrySize = 0;
+    void createShaderTable();
+    ID3D12ResourcePtr mpShaderTable;
+    uint32_t mShaderTableEntrySize = 0;
 };

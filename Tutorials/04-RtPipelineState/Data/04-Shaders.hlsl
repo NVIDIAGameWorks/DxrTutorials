@@ -25,7 +25,7 @@ struct Payload
 };
 
 [shader("miss")]
-void miss(inout Payload payload : SV_RayPayload)
+void miss(inout Payload payload)
 {
     payload.hit = false;
 }
@@ -36,7 +36,7 @@ struct IntersectionAttribs
 };
 
 [shader("closesthit")]
-void chs(inout Payload payload : SV_RayPayload  , IntersectionAttribs attribs : SV_IntersectionAttributes)
+void chs(inout Payload payload, in IntersectionAttribs attribs)
 {
     payload.hit = true;
 }

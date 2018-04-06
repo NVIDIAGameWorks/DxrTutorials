@@ -413,7 +413,7 @@ void buildTopLevelAS(ID3D12DevicePtr pDevice, ID3D12GraphicsCommandListPtr pCmdL
     transformation[1] = translate(mat4(), vec3(-2, 0, 0)) * rotationMat;
     transformation[2] = translate(mat4(), vec3(2, 0, 0)) * rotationMat;
 
-    // The InstanceSbtRecordOffset is set based on the SBT layout specified in createShaderBindingTable()
+    // The InstanceContributionToHitGroupIndex is set based on the shader-table layout specified in createShaderTable()
     // Create the desc for the triangle/plane instance
     instanceDescs[0].InstanceID = 0;
     instanceDescs[0].InstanceContributionToHitGroupIndex = 0;
@@ -424,8 +424,8 @@ void buildTopLevelAS(ID3D12DevicePtr pDevice, ID3D12GraphicsCommandListPtr pCmdL
     
     for (uint32_t i = 1; i < 3; i++)
     {
-        instanceDescs[i].InstanceID = i;               // This value will be exposed to the shader via SV_rtInstanceID
-        instanceDescs[i].InstanceContributionToHitGroupIndex = (i * 2) + 2;  // Triangle 1 starts at entry 7, triangle 2 starts at entry 9, but this value is relative to HitProgramSbtBaseIndex specified in Raytrace(), which is 3, so we need 4 and 6
+        instanceDescs[i].InstanceID = i;               // This value will be exposed to the shader via InstanceID()
+        instanceDescs[i].InstanceContributionToHitGroupIndex = (i * 2) + 2;  // The indices are relative to to the start of the hit-table entries specified in Raytrace(), so we need 4 and 6
         instanceDescs[i].Flags = D3D12_RAYTRACING_INSTANCE_FLAG_NONE;
         mat4 m = transpose(transformation[i]); // GLM is column major, the INSTANCE_DESC is row major
         memcpy(instanceDescs[i].Transform, &m, sizeof(instanceDescs[i].Transform));
@@ -879,9 +879,9 @@ void DxrSample::createRtPipelineState()
 //////////////////////////////////////////////////////////////////////////
 // Tutorial 05
 //////////////////////////////////////////////////////////////////////////
-void DxrSample::createShaderBindingTable()
+void DxrSample::createShaderTable()
 {
-    /** The SBT layout is as follows:
+    /** The shader-table layout is as follows:
         Entry 0 - Ray-gen program
         Entry 1 - Miss program for the primary ray
         Entry 2 - Miss program for the shadow ray
@@ -889,25 +889,25 @@ void DxrSample::createShaderBindingTable()
         Entries 5,6 - Hit programs for the plane (primary followed by shadow)
         Entries 7,8 - Hit programs for triangle 1 (primary followed by shadow)
         Entries 9,10 - Hit programs for triangle 2 (primary followed by shadow)
-        All entries in the SBT must have the same size, so we will choose it base on the largest required entry.
+        All entries in the shader-table must have the same size, so we will choose it base on the largest required entry.
         The triangle primary-ray hit program requires the largest entry - sizeof(program identifier) + 8 bytes for the constant-buffer root descriptor.
-        The entry size must be aligned up to D3D12_RAYTRACING_SHADER_BINDING_TABLE_RECORD_BYTE_ALIGNMENT
+        The entry size must be aligned up to D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT
     */
 
     // Calculate the size and create the buffer
     ID3D12DeviceRaytracingPrototypePtr pRtDevice = mpDevice;
     uint32_t progIdSize = pRtDevice->GetShaderIdentifierSize();
-    mSbtEntrySize = progIdSize;
-    mSbtEntrySize += 8; // The hit shader constant-buffer descriptor
-    mSbtEntrySize = align_to(D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT, mSbtEntrySize);
-    uint32_t sbtSize = mSbtEntrySize * 11;
+    mShaderTableEntrySize = progIdSize;
+    mShaderTableEntrySize += 8; // The hit shader constant-buffer descriptor
+    mShaderTableEntrySize = align_to(D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT, mShaderTableEntrySize);
+    uint32_t shaderTableSize = mShaderTableEntrySize * 11;
 
-    // For simplicity, we create the SBT on the upload heap. You can also create it on the default heap
-    mpShaderBindingTable = createBuffer(mpDevice, sbtSize, D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_GENERIC_READ, kUploadHeapProps);
+    // For simplicity, we create the shader-table on the upload heap. You can also create it on the default heap
+    mpShaderTable = createBuffer(mpDevice, shaderTableSize, D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_GENERIC_READ, kUploadHeapProps);
 
     // Map the buffer
     uint8_t* pData;
-    d3d_call(mpShaderBindingTable->Map(0, nullptr, (void**)&pData));
+    d3d_call(mpShaderTable->Map(0, nullptr, (void**)&pData));
 
     MAKE_SMART_COM_PTR(ID3D12StateObjectPropertiesPrototype);
     ID3D12StateObjectPropertiesPrototypePtr pRtsoProps;
@@ -919,52 +919,52 @@ void DxrSample::createShaderBindingTable()
     *(uint64_t*)(pData + progIdSize) = heapStart;
 
     // Entry 1 - primary ray miss
-    memcpy(pData + mSbtEntrySize, pRtsoProps->GetShaderIdentifier(kMissShader), progIdSize);
+    memcpy(pData + mShaderTableEntrySize, pRtsoProps->GetShaderIdentifier(kMissShader), progIdSize);
 
     // Entry 2 - shadow-ray miss
-    memcpy(pData + mSbtEntrySize * 2, pRtsoProps->GetShaderIdentifier(kShadowMiss), progIdSize);
+    memcpy(pData + mShaderTableEntrySize * 2, pRtsoProps->GetShaderIdentifier(kShadowMiss), progIdSize);
 
     // Entry 3 - Triangle 0, primary ray. ProgramID and constant-buffer data
-    uint8_t* pEntry3 = pData + mSbtEntrySize * 3;
+    uint8_t* pEntry3 = pData + mShaderTableEntrySize * 3;
     memcpy(pEntry3, pRtsoProps->GetShaderIdentifier(kTriHitGroup), progIdSize);
     assert(((uint64_t)(pEntry3 + progIdSize) % 8) == 0); // Root descriptor must be stored at an 8-byte aligned address
     *(D3D12_GPU_VIRTUAL_ADDRESS*)(pEntry3 + progIdSize) = mpConstantBuffer[0]->GetGPUVirtualAddress();
 
     // Entry 4 - Triangle 0, shadow ray. ProgramID only
-    uint8_t* pEntry4 = pData + mSbtEntrySize * 4;
+    uint8_t* pEntry4 = pData + mShaderTableEntrySize * 4;
     memcpy(pEntry4, pRtsoProps->GetShaderIdentifier(kShadowHitGroup), progIdSize);
 
     // Entry 5 - Plane, primary ray. ProgramID only and the TLAS SRV
-    uint8_t* pEntry5 = pData + mSbtEntrySize * 5;
+    uint8_t* pEntry5 = pData + mShaderTableEntrySize * 5;
     memcpy(pEntry5, pRtsoProps->GetShaderIdentifier(kPlaneHitGroup), progIdSize);
     *(uint64_t*)(pEntry5 + progIdSize) = heapStart + mpDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV); // The SRV comes directly after the program id
 
     // Entry 6 - Plane, shadow ray
-    uint8_t* pEntry6 = pData + mSbtEntrySize * 6;
+    uint8_t* pEntry6 = pData + mShaderTableEntrySize * 6;
     memcpy(pEntry6, pRtsoProps->GetShaderIdentifier(kShadowHitGroup), progIdSize);
 
     // Entry 7 - Triangle 1, primary ray. ProgramID and constant-buffer data
-    uint8_t* pEntry7 = pData + mSbtEntrySize * 7;
+    uint8_t* pEntry7 = pData + mShaderTableEntrySize * 7;
     memcpy(pEntry7, pRtsoProps->GetShaderIdentifier(kTriHitGroup), progIdSize);
     assert(((uint64_t)(pEntry7 + progIdSize) % 8) == 0); // Root descriptor must be stored at an 8-byte aligned address
     *(D3D12_GPU_VIRTUAL_ADDRESS*)(pEntry7 + progIdSize) = mpConstantBuffer[1]->GetGPUVirtualAddress();
 
     // Entry 8 - Triangle 1, shadow ray. ProgramID only
-    uint8_t* pEntry8 = pData + mSbtEntrySize * 8;
+    uint8_t* pEntry8 = pData + mShaderTableEntrySize * 8;
     memcpy(pEntry8, pRtsoProps->GetShaderIdentifier(kShadowHitGroup), progIdSize);
 
     // Entry 9 - Triangle 2, primary ray. ProgramID and constant-buffer data
-    uint8_t* pEntry9 = pData + mSbtEntrySize * 9;
+    uint8_t* pEntry9 = pData + mShaderTableEntrySize * 9;
     memcpy(pEntry9, pRtsoProps->GetShaderIdentifier(kTriHitGroup), progIdSize);
     assert(((uint64_t)(pEntry9 + progIdSize) % 8) == 0); // Root descriptor must be stored at an 8-byte aligned address
     *(D3D12_GPU_VIRTUAL_ADDRESS*)(pEntry9 + progIdSize) = mpConstantBuffer[2]->GetGPUVirtualAddress();
 
     // Entry 10 - Triangle 2, shadow ray. ProgramID only
-    uint8_t* pEntry10 = pData + mSbtEntrySize * 10;
+    uint8_t* pEntry10 = pData + mShaderTableEntrySize * 10;
     memcpy(pEntry10, pRtsoProps->GetShaderIdentifier(kShadowHitGroup), progIdSize);
 
     // Unmap
-    mpShaderBindingTable->Unmap(0, nullptr);
+    mpShaderTable->Unmap(0, nullptr);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1046,8 +1046,8 @@ void DxrSample::onLoad(SampleCallbacks* pSample, RenderContext::SharedPtr pRende
     createAccelerationStructures();                 // Tutorial 03
     createRtPipelineState();                        // Tutorial 04
     createShaderResources(pSample->getWindow());    // Tutorial 06
-    createConstantBuffers();                        // Tutorial 10. Yes, we need to do it before creating the SBT
-    createShaderBindingTable();                     // Tutorial 05
+    createConstantBuffers();                        // Tutorial 10. Yes, we need to do it before creating the shader-table
+    createShaderTable();                     // Tutorial 05
 }
 
 void DxrSample::onFrameRender(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext, Fbo::SharedPtr pTargetFbo)
@@ -1064,21 +1064,21 @@ void DxrSample::onFrameRender(SampleCallbacks* pSample, RenderContext::SharedPtr
     raytraceDesc.Width = pSample->getWindow()->getClientAreaWidth();
     raytraceDesc.Height = pSample->getWindow()->getClientAreaHeight();
 
-    // RayGen is the first entry in the SBT
-    raytraceDesc.RayGenerationShaderRecord.StartAddress = mpShaderBindingTable->GetGPUVirtualAddress() + 0 * mSbtEntrySize;
-    raytraceDesc.RayGenerationShaderRecord.SizeInBytes = mSbtEntrySize;
+    // RayGen is the first entry in the shader-table
+    raytraceDesc.RayGenerationShaderRecord.StartAddress = mpShaderTable->GetGPUVirtualAddress() + 0 * mShaderTableEntrySize;
+    raytraceDesc.RayGenerationShaderRecord.SizeInBytes = mShaderTableEntrySize;
 
-    // Miss is the second entry in the SBT
-    size_t missSbtOffset = 1 * mSbtEntrySize;
-    raytraceDesc.MissShaderTable.StartAddress = mpShaderBindingTable->GetGPUVirtualAddress() + missSbtOffset;
-    raytraceDesc.MissShaderTable.StrideInBytes = mSbtEntrySize;
-    raytraceDesc.MissShaderTable.SizeInBytes = mSbtEntrySize * 2;   // 2 miss-entries
+    // Miss is the second entry in the shader-table
+    size_t missOffset = 1 * mShaderTableEntrySize;
+    raytraceDesc.MissShaderTable.StartAddress = mpShaderTable->GetGPUVirtualAddress() + missOffset;
+    raytraceDesc.MissShaderTable.StrideInBytes = mShaderTableEntrySize;
+    raytraceDesc.MissShaderTable.SizeInBytes = mShaderTableEntrySize * 2;   // 2 miss-entries
 
-    // Hit is the fourth entry in the SBT
-    size_t hitSbtOffset = 3 * mSbtEntrySize;
-    raytraceDesc.HitGroupTable.StartAddress = mpShaderBindingTable->GetGPUVirtualAddress() + hitSbtOffset;
-    raytraceDesc.HitGroupTable.StrideInBytes = mSbtEntrySize;
-    raytraceDesc.HitGroupTable.SizeInBytes = mSbtEntrySize * 8;    // 8 hit-entries
+    // Hit is the fourth entry in the shader-table
+    size_t hitOffset = 3 * mShaderTableEntrySize;
+    raytraceDesc.HitGroupTable.StartAddress = mpShaderTable->GetGPUVirtualAddress() + hitOffset;
+    raytraceDesc.HitGroupTable.StrideInBytes = mShaderTableEntrySize;
+    raytraceDesc.HitGroupTable.SizeInBytes = mShaderTableEntrySize * 8;    // 8 hit-entries
 
     // Bind the empty root signature
     mpCmdList->SetComputeRootSignature(mpEmptyRootSig);

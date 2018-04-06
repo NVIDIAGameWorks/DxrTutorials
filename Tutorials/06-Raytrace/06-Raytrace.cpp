@@ -383,7 +383,7 @@ AccelerationStructureBuffers createTopLevelAS(ID3D12DevicePtr pDevice, ID3D12Gra
 
     // Initialize the instance desc. We only have a single instance
     pInstanceDesc->InstanceID = 0;                            // This value will be exposed to the shader via SV_InstanceID
-    pInstanceDesc->InstanceContributionToHitGroupIndex = 0;   // This is the offset inside the SBT. We only have a single geometry, so the offset 0
+    pInstanceDesc->InstanceContributionToHitGroupIndex = 0;   // This is the offset inside the shader-table. We only have a single geometry, so the offset 0
     pInstanceDesc->Flags = D3D12_RAYTRACING_INSTANCE_FLAG_NONE;
     mat4 m; // Identity matrix
     memcpy(pInstanceDesc->Transform, &m, sizeof(pInstanceDesc->Transform));
@@ -748,31 +748,31 @@ void DxrSample::createRtPipelineState()
 //////////////////////////////////////////////////////////////////////////
 // Tutorial 05
 //////////////////////////////////////////////////////////////////////////
-void DxrSample::createShaderBindingTable()
+void DxrSample::createShaderTable()
 {
-    /** The SBT layout is as follows:
+    /** The shader-table layout is as follows:
         Entry 0 - Ray-gen program
         Entry 1 - Miss program
         Entry 2 - Hit program
-        All entries in the SBT must have the same size, so we will choose it base on the largest required entry.
+        All entries in the shader-table must have the same size, so we will choose it base on the largest required entry.
         The ray-gen program requires the largest entry - sizeof(program identifier) + 8 bytes for a descriptor-table.
-        The entry size must be aligned up to D3D12_RAYTRACING_SHADER_BINDING_TABLE_RECORD_BYTE_ALIGNMENT
+        The entry size must be aligned up to D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT
     */
 
     // Calculate the size and create the buffer
     ID3D12DeviceRaytracingPrototypePtr pRtDevice = mpDevice;
     uint32_t progIdSize = pRtDevice->GetShaderIdentifierSize();
-    mSbtEntrySize = progIdSize;
-    mSbtEntrySize += 8; // The ray-gen's descriptor table
-    mSbtEntrySize = align_to(D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT, mSbtEntrySize);
-    uint32_t sbtSize = mSbtEntrySize * 3;
+    mShaderTableEntrySize = progIdSize;
+    mShaderTableEntrySize += 8; // The ray-gen's descriptor table
+    mShaderTableEntrySize = align_to(D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT, mShaderTableEntrySize);
+    uint32_t shaderTableSize = mShaderTableEntrySize * 3;
 
-    // For simplicity, we create the SBT on the upload heap. You can also create it on the default heap
-    mpShaderBindingTable = createBuffer(mpDevice, sbtSize, D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_GENERIC_READ, kUploadHeapProps);
+    // For simplicity, we create the shader-table on the upload heap. You can also create it on the default heap
+    mpShaderTable = createBuffer(mpDevice, shaderTableSize, D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_GENERIC_READ, kUploadHeapProps);
 
     // Map the buffer
     uint8_t* pData;
-    d3d_call(mpShaderBindingTable->Map(0, nullptr, (void**)&pData));
+    d3d_call(mpShaderTable->Map(0, nullptr, (void**)&pData));
 
     MAKE_SMART_COM_PTR(ID3D12StateObjectPropertiesPrototype);
     ID3D12StateObjectPropertiesPrototypePtr pRtsoProps;
@@ -784,14 +784,14 @@ void DxrSample::createShaderBindingTable()
     *(uint64_t*)(pData + progIdSize) = heapStart;
 
     // Entry 1 - miss program
-    memcpy(pData + mSbtEntrySize, pRtsoProps->GetShaderIdentifier(kMissShader), progIdSize);
+    memcpy(pData + mShaderTableEntrySize, pRtsoProps->GetShaderIdentifier(kMissShader), progIdSize);
 
     // Entry 2 - hit program
-    uint8_t* pHitEntry = pData + mSbtEntrySize * 2; // +2 skips the ray-gen and miss entries
+    uint8_t* pHitEntry = pData + mShaderTableEntrySize * 2; // +2 skips the ray-gen and miss entries
     memcpy(pHitEntry, pRtsoProps->GetShaderIdentifier(kHitGroup), progIdSize);
 
     // Unmap
-    mpShaderBindingTable->Unmap(0, nullptr);
+    mpShaderTable->Unmap(0, nullptr);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -838,8 +838,8 @@ void DxrSample::onLoad(SampleCallbacks* pSample, RenderContext::SharedPtr pRende
     initDXR(pSample->getWindow());                  // Tutorial 02
     createAccelerationStructures();                 // Tutorial 03
     createRtPipelineState();                        // Tutorial 04
-    createShaderResources(pSample->getWindow());    // Tutorial 06. Need to do this before initializing the SBT
-    createShaderBindingTable();                     // Tutorial 05
+    createShaderResources(pSample->getWindow());    // Tutorial 06. Need to do this before initializing the shader-table
+    createShaderTable();                     // Tutorial 05
 }
 
 void DxrSample::onFrameRender(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext, Fbo::SharedPtr pTargetFbo)
@@ -852,21 +852,21 @@ void DxrSample::onFrameRender(SampleCallbacks* pSample, RenderContext::SharedPtr
     raytraceDesc.Width = pSample->getWindow()->getClientAreaWidth();
     raytraceDesc.Height = pSample->getWindow()->getClientAreaHeight();
 
-    // RayGen is the first entry in the SBT
-    raytraceDesc.RayGenerationShaderRecord.StartAddress = mpShaderBindingTable->GetGPUVirtualAddress() + 0 * mSbtEntrySize;
-    raytraceDesc.RayGenerationShaderRecord.SizeInBytes = mSbtEntrySize;
+    // RayGen is the first entry in the shader-table
+    raytraceDesc.RayGenerationShaderRecord.StartAddress = mpShaderTable->GetGPUVirtualAddress() + 0 * mShaderTableEntrySize;
+    raytraceDesc.RayGenerationShaderRecord.SizeInBytes = mShaderTableEntrySize;
 
-    // Miss is the second entry in the SBT
-    size_t missSbtOffset = 1 * mSbtEntrySize;
-    raytraceDesc.MissShaderTable.StartAddress = mpShaderBindingTable->GetGPUVirtualAddress() + missSbtOffset;
-    raytraceDesc.MissShaderTable.StrideInBytes = mSbtEntrySize;
-    raytraceDesc.MissShaderTable.SizeInBytes = mSbtEntrySize;   // Only a s single miss-entry
+    // Miss is the second entry in the shader-table
+    size_t missOffset = 1 * mShaderTableEntrySize;
+    raytraceDesc.MissShaderTable.StartAddress = mpShaderTable->GetGPUVirtualAddress() + missOffset;
+    raytraceDesc.MissShaderTable.StrideInBytes = mShaderTableEntrySize;
+    raytraceDesc.MissShaderTable.SizeInBytes = mShaderTableEntrySize;   // Only a s single miss-entry
 
-    // Hit is the third entry in the SBT
-    size_t hitSbtOffset = 2 * mSbtEntrySize;
-    raytraceDesc.HitGroupTable.StartAddress = mpShaderBindingTable->GetGPUVirtualAddress() + hitSbtOffset;
-    raytraceDesc.HitGroupTable.StrideInBytes = mSbtEntrySize;
-    raytraceDesc.HitGroupTable.SizeInBytes = mSbtEntrySize;
+    // Hit is the third entry in the shader-table
+    size_t hitOffset = 2 * mShaderTableEntrySize;
+    raytraceDesc.HitGroupTable.StartAddress = mpShaderTable->GetGPUVirtualAddress() + hitOffset;
+    raytraceDesc.HitGroupTable.StrideInBytes = mShaderTableEntrySize;
+    raytraceDesc.HitGroupTable.SizeInBytes = mShaderTableEntrySize;
 
     // Bind the empty root signature
     mpCmdList->SetComputeRootSignature(mpEmptyRootSig);

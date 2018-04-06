@@ -49,7 +49,7 @@ void rayGen()
 }
 
 [shader("miss")]
-void miss(inout RayPayload payload : SV_RayPayload)
+void miss(inout RayPayload payload)
 {
     payload.color = float3(0.4, 0.6, 0.2);
 }
@@ -60,7 +60,7 @@ struct IntersectionAttribs
 };
 
 [shader("closesthit")]
-void triangleChs(inout RayPayload payload : SV_RayPayload, IntersectionAttribs attribs : SV_IntersectionAttributes)
+void triangleChs(inout RayPayload payload, in IntersectionAttribs attribs)
 {
     float3 barycentrics = float3(1.0 - attribs.baryCrd.x - attribs.baryCrd.y, attribs.baryCrd.x, attribs.baryCrd.y);
     payload.color = A * barycentrics.x + B * barycentrics.y + C * barycentrics.z;
@@ -72,7 +72,7 @@ struct ShadowPayload
 };
 
 [shader("closesthit")]
-void planeChs(inout RayPayload payload : SV_RayPayload, IntersectionAttribs attribs : SV_IntersectionAttributes)
+void planeChs(inout RayPayload payload, in IntersectionAttribs attribs)
 {
     float hitT = RayTCurrent();
     float3 rayDirW = WorldRayDirection();
@@ -95,13 +95,13 @@ void planeChs(inout RayPayload payload : SV_RayPayload, IntersectionAttribs attr
 }
 
 [shader("closesthit")]
-void shadowChs(inout ShadowPayload payload : SV_RayPayload, IntersectionAttribs attribs : SV_IntersectionAttributes)
+void shadowChs(inout ShadowPayload payload, in IntersectionAttribs attribs)
 {
     payload.hit = true;
 }
 
 [shader("miss")]
-void shadowMiss(inout ShadowPayload payload : SV_RayPayload)
+void shadowMiss(inout ShadowPayload payload)
 {
     payload.hit = false;
 }
