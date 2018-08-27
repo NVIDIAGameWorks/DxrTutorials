@@ -9,3 +9,4 @@ Requirements:
 - Visual Studio 2015.
 - You do not need to download the DXR SDK, it is packaged with the tutorials.
 - Open the solution, build it, knock yourself out.
+- A GPU that supports DXR (Such as NVIDIA's Volta or Turing hardware)
