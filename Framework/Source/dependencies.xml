@@ -1,43 +1,53 @@
 <project toolsVersion="5.0">
+    <remote name="github-slang" type="https"
+            packageLocation="github.com/shader-slang/slang/releases/download/v${version}/slang-${version}-win64.zip"/>
+    <remote name="github-slang-linux" type="https"
+            packageLocation="github.com/shader-slang/slang/releases/download/v${version}/slang-${version}-linux-x86_64.zip"/>
     <dependency name="openvr" linkPath="../Externals/OpenVR">
-        <package name="openvr" version="1.0.8" platforms="win"/>
-        <package name="openvr" version="1.0.8-linux" platforms="linux"/>
+        <package name="openvr" version="1.0.14" platforms="win"/>
+        <package name="openvr" version="1.0.14-linux" platforms="linux"/>
     </dependency>
-    <dependency name="assimp" linkPath="..//Externals/ASSIMP">
-        <package name="assimp" version="4.0.1" platforms="win" />
+    <dependency name="assimp" linkPath="../Externals/ASSIMP">
+        <package name="assimp" version="4.1.0" platforms="win" />
     </dependency>
-    <dependency name="dear_imgui" linkPath="..//Externals/dear_imgui">
-        <package name="dear_imgui" version="1.50.wip" />
+    <dependency name="dear_imgui" linkPath="../Externals/dear_imgui">
+        <package name="dear_imgui" version="1.65" />
     </dependency>
-    <dependency name="glm" linkPath="..//Externals/GLM">
-        <package name="glm" version="0.9.8.4" />
+    <dependency name="glm" linkPath="../Externals/GLM">
+        <package name="glm" version="0.9.9.2" />
     </dependency>
-    <dependency name="ffmpeg" linkPath="..//Externals/FFMPEG">
-        <package name="ffmpeg" version="3.1.4" platforms="win" />
+    <dependency name="ffmpeg" linkPath="../Externals/FFMPEG">
+        <package name="ffmpeg" version="3.4.2" platforms="win" />
     </dependency>
-    <dependency name="freeimage" linkPath="..//Externals/FreeImage">
+    <dependency name="freeimage" linkPath="../Externals/FreeImage">
         <package name="freeimage" version="3.17.0" platforms="win" />
     </dependency>
-    <dependency name="vulkansdk" linkPath="..//Externals/VulkanSDK">
-        <package name="vulkansdk" version="1.0.51.0" platforms="win"/>
+    <dependency name="vulkansdk" linkPath="../Externals/VulkanSDK">
+        <package name="vulkansdk" version="1.1.82.1" platforms="win"/>
     </dependency>
-    <dependency name="rapidjson" linkPath="..//Externals/RapidJson">
-        <package name="rapidjson" version="0.1" />
+    <dependency name="rapidjson" linkPath="../Externals/RapidJson">
+        <package name="rapidjson" version="1.1.0" />
     </dependency>
-    <dependency name="slang" linkPath="..//Externals/Slang">
-        <package name="slang" version="0.9.12" />
-        <package name="slang" version="0.9.12-linux" platforms="linux" />
+    <dependency name="slang" linkPath="../Externals/Slang">
+        <package name="slang" version="0.11.4" remotes="github-slang" />
+        <package name="slang" version="0.11.4" remotes="github-slang-linux" platforms="linux" />
     </dependency>
-    <dependency name="glfw" linkPath="..//Externals/GLFW">
+    <dependency name="glfw" linkPath="../Externals/GLFW">
         <package name="glfw" version="3.2.1" platforms="win" />
     </dependency>
-	<dependency name="Falcor" linkPath="../Externals/Falcor">
-        <package name="Falcor" version="3.0" />
+    <dependency name="dxcompiler" linkPath="../Externals/dxcompiler">
+        <package name="dxcompiler" version="10.0.17763.0" />
     </dependency>
-	<dependency name="DXCAPI" linkPath="../Externals/DXCAPI">
+    <dependency name="python" linkPath="../Externals/Python">
+        <package name="python" version="3.7.0-windows-x64" platforms="win" />
+    </dependency>
+    <dependency name="pybind11" linkPath="../Externals/pybind11">
+        <package name="pybind11" version="2.2.4" />
+    </dependency>
+    <dependency name="Falcor" linkPath="../Externals/Falcor">
+        <package name="Falcor" version="3.1" />
+    </dependency>
+    <dependency name="DXCAPI" linkPath="../Externals/DXCAPI">
         <package name="DXCAPI" version="1.0" />
-    </dependency>
-	<dependency name="DXR" linkPath="../Externals/DXR">
-        <package name="DXR" version="0.09.01" />
     </dependency>
 </project>
