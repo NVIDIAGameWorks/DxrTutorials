@@ -1,7 +1,7 @@
 
 /************************************************************************************************************************************\
 |*                                                                                                                                    *|
-|*     Copyright © 2017 NVIDIA Corporation.  All rights reserved.                                                                     *|
+|*     Copyright © 2018 NVIDIA Corporation.  All rights reserved.                                                                     *|
 |*                                                                                                                                    *|
 |*  NOTICE TO USER:                                                                                                                   *|
 |*                                                                                                                                    *|
@@ -34,17 +34,17 @@
  \************************************************************************************************************************************/
 #pragma once
 #include "Falcor.h"
-#include "d3d12_1.h"
 
 using namespace Falcor;
 
-MAKE_SMART_COM_PTR(ID3D12StateObjectPrototype);
+MAKE_SMART_COM_PTR(ID3D12Device5);
+MAKE_SMART_COM_PTR(ID3D12GraphicsCommandList4);
 
 class DxrSample : public Renderer
 {
 public:
-    void onLoad(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext) override;
-    void onFrameRender(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext, Fbo::SharedPtr pTargetFbo) override;
+    void onLoad(SampleCallbacks* pSample, const RenderContext::SharedPtr& pRenderContext) override;
+    void onFrameRender(SampleCallbacks* pSample, const RenderContext::SharedPtr& pRenderContext, const Fbo::SharedPtr& pTargetFbo) override;
     void onShutdown(SampleCallbacks* pSample) override;
     bool onMouseEvent(SampleCallbacks* pSample, const MouseEvent& mouseEvent) override;
     bool onKeyEvent(SampleCallbacks* pSample, const KeyboardEvent& keyEvent) override;
@@ -56,10 +56,10 @@ private:
     uint32_t beginFrame();
     void endFrame(uint32_t rtvIndex);
     HWND mHwnd = nullptr;
-    ID3D12DevicePtr mpDevice;
+    ID3D12Device5Ptr mpDevice;
     ID3D12CommandQueuePtr mpCmdQueue;
     IDXGISwapChain3Ptr mpSwapChain;
-    ID3D12GraphicsCommandListPtr mpCmdList;
+    ID3D12GraphicsCommandList4Ptr mpCmdList;
     ID3D12FencePtr mpFence;
     HANDLE mFenceEvent;
     uint64_t mFenceValue = 0;
@@ -94,7 +94,7 @@ private:
     // Tutorial 04
     //////////////////////////////////////////////////////////////////////////
     void createRtPipelineState();
-    ID3D12StateObjectPrototypePtr mpPipelineState;
+    ID3D12StateObjectPtr mpPipelineState;
     ID3D12RootSignaturePtr mpEmptyRootSig;
     
     //////////////////////////////////////////////////////////////////////////
