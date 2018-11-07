@@ -13,10 +13,10 @@ float3 linearToSrgb(float3 c)
 
 [shader("raygeneration")]
 void rayGen()
-{  
-    uint2 launchIndex = DispatchRaysIndex();
+{
+    uint3 launchIndex = DispatchRaysIndex();
     float3 col = linearToSrgb(float3(0.4, 0.6, 0.2));
-    gOutput[launchIndex] = float4(col, 1);
+    gOutput[launchIndex.xy] = float4(col, 1);
 }
 
 struct Payload
@@ -30,13 +30,8 @@ void miss(inout Payload payload)
     payload.hit = false;
 }
 
-struct IntersectionAttribs
-{
-    float2 baryCrd;
-};
-
 [shader("closesthit")]
-void chs(inout Payload payload, in IntersectionAttribs attribs)
+void chs(inout Payload payload, in BuiltInTriangleIntersectionAttributes attribs)
 {
     payload.hit = true;
 }
