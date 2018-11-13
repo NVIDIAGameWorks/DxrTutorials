@@ -10,3 +10,4 @@ FalcorRT.VC.VC.opendb
 /pink_room/*
 *.VC.db
 Framework/Externals/
+.vs/

@@ -1,6 +1,6 @@
 /************************************************************************************************************************************\
 |*                                                                                                                                    *|
-|*     Copyright © 2017 NVIDIA Corporation.  All rights reserved.                                                                     *|
+|*     Copyright © 2018 NVIDIA Corporation.  All rights reserved.                                                                     *|
 |*                                                                                                                                    *|
 |*  NOTICE TO USER:                                                                                                                   *|
 |*                                                                                                                                    *|
@@ -36,12 +36,12 @@
 //////////////////////////////////////////////////////////////////////////
 // Callbacks
 //////////////////////////////////////////////////////////////////////////
-void DxrSample::onLoad(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext)
+void DxrSample::onLoad(SampleCallbacks* pSample, const RenderContext::SharedPtr& pRenderContext)
 {
 
 }
 
-void DxrSample::onFrameRender(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext, Fbo::SharedPtr pTargetFbo)
+void DxrSample::onFrameRender(SampleCallbacks* pSample, const RenderContext::SharedPtr& pRenderContext, const Fbo::SharedPtr& pTargetFbo)
 {
 
 }

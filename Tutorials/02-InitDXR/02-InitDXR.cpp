@@ -1,6 +1,6 @@
 /************************************************************************************************************************************\
 |*                                                                                                                                    *|
-|*     Copyright © 2017 NVIDIA Corporation.  All rights reserved.                                                                     *|
+|*     Copyright © 2018 NVIDIA Corporation.  All rights reserved.                                                                     *|
 |*                                                                                                                                    *|
 |*  NOTICE TO USER:                                                                                                                   *|
 |*                                                                                                                                    *|
@@ -31,7 +31,7 @@
 |*  the above Disclaimer (as applicable) and U.S. Government End Users Notice.                                                        *|
 |*                                                                                                                                    *|
  \************************************************************************************************************************************/
-#include "02-initDXR.h"
+#include "02-InitDXR.h"
 
 //////////////////////////////////////////////////////////////////////////
 // Tutorial 02 code
@@ -64,7 +64,7 @@ IDXGISwapChain3Ptr createDxgiSwapChain(IDXGIFactory4Ptr pFactory, HWND hwnd, uin
     return pSwapChain3;
 }
 
-ID3D12DevicePtr createDevice(IDXGIFactory4Ptr pDxgiFactory)
+ID3D12Device5Ptr createDevice(IDXGIFactory4Ptr pDxgiFactory)
 {
     // Find the HW adapter
     IDXGIAdapter1Ptr pAdapter;
@@ -84,26 +84,22 @@ ID3D12DevicePtr createDevice(IDXGIFactory4Ptr pDxgiFactory)
         }
 #endif
         // Create the device
-        ID3D12DevicePtr pDevice;
-        HRESULT hr = D3D12EnableExperimentalFeatures(1, &D3D12RaytracingPrototype, NULL, NULL);
-        if (FAILED(hr))
+        ID3D12Device5Ptr pDevice;
+        d3d_call(D3D12CreateDevice(pAdapter, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&pDevice)));
+
+        D3D12_FEATURE_DATA_D3D12_OPTIONS5 features5;
+        HRESULT hr = pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &features5, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS5));
+        if (FAILED(hr) || features5.RaytracingTier == D3D12_RAYTRACING_TIER_NOT_SUPPORTED)
         {
-            d3dTraceHR("Could not enable raytracing (D3D12EnableExperimentalFeatures() failed).\n" \
-                "Possible reasons:\n" \
-                "  1) your OS is not in developer mode\n" \
-                "  2) your GPU driver doesn't match the D3D12 runtime loaded by the app (d3d12.dll and friends)\n" \
-                "  3) your D3D12 runtime doesn't match the D3D12 headers used by your app (in particular, the GUID passed to D3D12EnableExperimentalFeatures)\n\n",
-                hr);
+            logError("Raytracing is not supported on this device. Make sure your GPU supports DXR (such as Nvidia's Volta or Turing RTX) and you're on the latest drivers. The DXR fallback layer is not supported.");
             exit(1);
         }
-
-        d3d_call(D3D12CreateDevice(pAdapter, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&pDevice)));
         return pDevice;
     }
     return nullptr;
 }
 
-ID3D12CommandQueuePtr createCommandQueue(ID3D12DevicePtr pDevice)
+ID3D12CommandQueuePtr createCommandQueue(ID3D12Device5Ptr pDevice)
 {
     ID3D12CommandQueuePtr pQueue;
     D3D12_COMMAND_QUEUE_DESC cqDesc = {};
@@ -113,7 +109,7 @@ ID3D12CommandQueuePtr createCommandQueue(ID3D12DevicePtr pDevice)
     return pQueue;
 }
 
-ID3D12DescriptorHeapPtr createDescriptorHeap(ID3D12DevicePtr pDevice, uint32_t count, D3D12_DESCRIPTOR_HEAP_TYPE type, bool shaderVisible)
+ID3D12DescriptorHeapPtr createDescriptorHeap(ID3D12Device5Ptr pDevice, uint32_t count, D3D12_DESCRIPTOR_HEAP_TYPE type, bool shaderVisible)
 {
     D3D12_DESCRIPTOR_HEAP_DESC desc = {};
     desc.NumDescriptors = count;
@@ -125,7 +121,7 @@ ID3D12DescriptorHeapPtr createDescriptorHeap(ID3D12DevicePtr pDevice, uint32_t c
     return pHeap;
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE createRTV(ID3D12DevicePtr pDevice, ID3D12ResourcePtr pResource, ID3D12DescriptorHeapPtr pHeap, uint32_t& usedHeapEntries, DXGI_FORMAT format)
+D3D12_CPU_DESCRIPTOR_HANDLE createRTV(ID3D12Device5Ptr pDevice, ID3D12ResourcePtr pResource, ID3D12DescriptorHeapPtr pHeap, uint32_t& usedHeapEntries, DXGI_FORMAT format)
 {
     D3D12_RENDER_TARGET_VIEW_DESC desc = {};
     desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
@@ -138,7 +134,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE createRTV(ID3D12DevicePtr pDevice, ID3D12ResourcePtr
     return rtvHandle;
 }
 
-void resourceBarrier(ID3D12GraphicsCommandListPtr pCmdList, ID3D12ResourcePtr pResource, D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter)
+void resourceBarrier(ID3D12GraphicsCommandList4Ptr pCmdList, ID3D12ResourcePtr pResource, D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter)
 {
     D3D12_RESOURCE_BARRIER barrier = {};
     barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -149,7 +145,7 @@ void resourceBarrier(ID3D12GraphicsCommandListPtr pCmdList, ID3D12ResourcePtr pR
     pCmdList->ResourceBarrier(1, &barrier);
 }
 
-uint64_t submitCommandList(ID3D12GraphicsCommandListPtr pCmdList, ID3D12CommandQueuePtr pCmdQueue, ID3D12FencePtr pFence, uint64_t fenceValue)
+uint64_t submitCommandList(ID3D12GraphicsCommandList4Ptr pCmdList, ID3D12CommandQueuePtr pCmdQueue, ID3D12FencePtr pFence, uint64_t fenceValue)
 {
     pCmdList->Close();
     ID3D12CommandList* pGraphicsList = pCmdList.GetInterfacePtr();
@@ -226,12 +222,12 @@ void DxrSample::endFrame(uint32_t rtvIndex)
 //////////////////////////////////////////////////////////////////////////
 // Callbacks
 //////////////////////////////////////////////////////////////////////////
-void DxrSample::onLoad(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext)
+void DxrSample::onLoad(SampleCallbacks* pSample, const RenderContext::SharedPtr& pRenderContext)
 {
     initDXR(pSample->getWindow());                         // Tutorial 02
 }
 
-void DxrSample::onFrameRender(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext, Fbo::SharedPtr pTargetFbo)
+void DxrSample::onFrameRender(SampleCallbacks* pSample, const RenderContext::SharedPtr& pRenderContext, const Fbo::SharedPtr& pTargetFbo)
 {
     uint32_t rtvIndex = beginFrame();
     const float clearColor[4] = { 0.4f, 0.6f, 0.2f, 1.0f };

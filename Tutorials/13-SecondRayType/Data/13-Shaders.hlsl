@@ -26,11 +26,11 @@ struct RayPayload
 [shader("raygeneration")]
 void rayGen()
 {
-    uint2 launchIndex = DispatchRaysIndex();
-    uint2 launchDim = DispatchRaysDimensions();
+    uint3 launchIndex = DispatchRaysIndex();
+    uint3 launchDim = DispatchRaysDimensions();
 
-    float2 crd = float2(launchIndex);
-    float2 dims = float2(launchDim);
+    float2 crd = float2(launchIndex.xy);
+    float2 dims = float2(launchDim.xy);
 
     float2 d = ((crd/dims) * 2.f - 1.f);
     float aspectRatio = dims.x / dims.y;
@@ -54,15 +54,10 @@ void miss(inout RayPayload payload)
     payload.color = float3(0.4, 0.6, 0.2);
 }
 
-struct IntersectionAttribs
-{
-    float2 baryCrd;
-};
-
 [shader("closesthit")]
-void triangleChs(inout RayPayload payload, in IntersectionAttribs attribs)
+void triangleChs(inout RayPayload payload, in BuiltInTriangleIntersectionAttributes attribs)
 {
-    float3 barycentrics = float3(1.0 - attribs.baryCrd.x - attribs.baryCrd.y, attribs.baryCrd.x, attribs.baryCrd.y);
+    float3 barycentrics = float3(1.0 - attribs.barycentrics.x - attribs.barycentrics.y, attribs.barycentrics.x, attribs.barycentrics.y);
     payload.color = A * barycentrics.x + B * barycentrics.y + C * barycentrics.z;
 }
 
@@ -72,7 +67,7 @@ struct ShadowPayload
 };
 
 [shader("closesthit")]
-void planeChs(inout RayPayload payload, in IntersectionAttribs attribs)
+void planeChs(inout RayPayload payload, in BuiltInTriangleIntersectionAttributes attribs)
 {
     float hitT = RayTCurrent();
     float3 rayDirW = WorldRayDirection();
@@ -95,7 +90,7 @@ void planeChs(inout RayPayload payload, in IntersectionAttribs attribs)
 }
 
 [shader("closesthit")]
-void shadowChs(inout ShadowPayload payload, in IntersectionAttribs attribs)
+void shadowChs(inout ShadowPayload payload, in BuiltInTriangleIntersectionAttributes attribs)
 {
     payload.hit = true;
 }

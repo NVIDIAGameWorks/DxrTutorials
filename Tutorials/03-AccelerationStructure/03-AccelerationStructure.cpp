@@ -1,6 +1,6 @@
 /************************************************************************************************************************************\
 |*                                                                                                                                    *|
-|*     Copyright © 2017 NVIDIA Corporation.  All rights reserved.                                                                     *|
+|*     Copyright © 2018 NVIDIA Corporation.  All rights reserved.                                                                     *|
 |*                                                                                                                                    *|
 |*  NOTICE TO USER:                                                                                                                   *|
 |*                                                                                                                                    *|
@@ -32,8 +32,6 @@
 |*                                                                                                                                    *|
  \************************************************************************************************************************************/
 #include "03-AccelerationStructure.h"
-MAKE_SMART_COM_PTR(ID3D12DeviceRaytracingPrototype);
-MAKE_SMART_COM_PTR(ID3D12CommandListRaytracingPrototype);
 
 //////////////////////////////////////////////////////////////////////////
 // Tutorial 02 code
@@ -66,7 +64,7 @@ IDXGISwapChain3Ptr createDxgiSwapChain(IDXGIFactory4Ptr pFactory, HWND hwnd, uin
     return pSwapChain3;
 }
 
-ID3D12DevicePtr createDevice(IDXGIFactory4Ptr pDxgiFactory)
+ID3D12Device5Ptr createDevice(IDXGIFactory4Ptr pDxgiFactory)
 {
     // Find the HW adapter
     IDXGIAdapter1Ptr pAdapter;
@@ -86,26 +84,22 @@ ID3D12DevicePtr createDevice(IDXGIFactory4Ptr pDxgiFactory)
         }
 #endif
         // Create the device
-        ID3D12DevicePtr pDevice;
-        HRESULT hr = D3D12EnableExperimentalFeatures(1, &D3D12RaytracingPrototype, NULL, NULL);
-        if (FAILED(hr))
+        ID3D12Device5Ptr pDevice;
+        d3d_call(D3D12CreateDevice(pAdapter, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&pDevice)));
+
+        D3D12_FEATURE_DATA_D3D12_OPTIONS5 features5;
+        HRESULT hr = pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &features5, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS5));
+        if (FAILED(hr) || features5.RaytracingTier == D3D12_RAYTRACING_TIER_NOT_SUPPORTED)
         {
-            d3dTraceHR("Could not enable raytracing (D3D12EnableExperimentalFeatures() failed).\n" \
-                "Possible reasons:\n" \
-                "  1) your OS is not in developer mode\n" \
-                "  2) your GPU driver doesn't match the D3D12 runtime loaded by the app (d3d12.dll and friends)\n" \
-                "  3) your D3D12 runtime doesn't match the D3D12 headers used by your app (in particular, the GUID passed to D3D12EnableExperimentalFeatures)\n\n",
-                hr);
+            logError("Raytracing is not supported on this device. Make sure your GPU supports DXR (such as Nvidia's Volta or Turing RTX) and you're on the latest drivers. The DXR fallback layer is not supported.");
             exit(1);
         }
-
-        d3d_call(D3D12CreateDevice(pAdapter, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&pDevice)));
         return pDevice;
     }
     return nullptr;
 }
 
-ID3D12CommandQueuePtr createCommandQueue(ID3D12DevicePtr pDevice)
+ID3D12CommandQueuePtr createCommandQueue(ID3D12Device5Ptr pDevice)
 {
     ID3D12CommandQueuePtr pQueue;
     D3D12_COMMAND_QUEUE_DESC cqDesc = {};
@@ -115,7 +109,7 @@ ID3D12CommandQueuePtr createCommandQueue(ID3D12DevicePtr pDevice)
     return pQueue;
 }
 
-ID3D12DescriptorHeapPtr createDescriptorHeap(ID3D12DevicePtr pDevice, uint32_t count, D3D12_DESCRIPTOR_HEAP_TYPE type, bool shaderVisible)
+ID3D12DescriptorHeapPtr createDescriptorHeap(ID3D12Device5Ptr pDevice, uint32_t count, D3D12_DESCRIPTOR_HEAP_TYPE type, bool shaderVisible)
 {
     D3D12_DESCRIPTOR_HEAP_DESC desc = {};
     desc.NumDescriptors = count;
@@ -127,7 +121,7 @@ ID3D12DescriptorHeapPtr createDescriptorHeap(ID3D12DevicePtr pDevice, uint32_t c
     return pHeap;
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE createRTV(ID3D12DevicePtr pDevice, ID3D12ResourcePtr pResource, ID3D12DescriptorHeapPtr pHeap, uint32_t& usedHeapEntries, DXGI_FORMAT format)
+D3D12_CPU_DESCRIPTOR_HANDLE createRTV(ID3D12Device5Ptr pDevice, ID3D12ResourcePtr pResource, ID3D12DescriptorHeapPtr pHeap, uint32_t& usedHeapEntries, DXGI_FORMAT format)
 {
     D3D12_RENDER_TARGET_VIEW_DESC desc = {};
     desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
@@ -140,7 +134,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE createRTV(ID3D12DevicePtr pDevice, ID3D12ResourcePtr
     return rtvHandle;
 }
 
-void resourceBarrier(ID3D12GraphicsCommandListPtr pCmdList, ID3D12ResourcePtr pResource, D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter)
+void resourceBarrier(ID3D12GraphicsCommandList4Ptr pCmdList, ID3D12ResourcePtr pResource, D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter)
 {
     D3D12_RESOURCE_BARRIER barrier = {};
     barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -151,7 +145,7 @@ void resourceBarrier(ID3D12GraphicsCommandListPtr pCmdList, ID3D12ResourcePtr pR
     pCmdList->ResourceBarrier(1, &barrier);
 }
 
-uint64_t submitCommandList(ID3D12GraphicsCommandListPtr pCmdList, ID3D12CommandQueuePtr pCmdQueue, ID3D12FencePtr pFence, uint64_t fenceValue)
+uint64_t submitCommandList(ID3D12GraphicsCommandList4Ptr pCmdList, ID3D12CommandQueuePtr pCmdQueue, ID3D12FencePtr pFence, uint64_t fenceValue)
 {
     pCmdList->Close();
     ID3D12CommandList* pGraphicsList = pCmdList.GetInterfacePtr();
@@ -245,7 +239,7 @@ static const D3D12_HEAP_PROPERTIES kDefaultHeapProps =
     0
 };
 
-ID3D12ResourcePtr createBuffer(ID3D12DevicePtr pDevice, uint64_t size, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initState, const D3D12_HEAP_PROPERTIES& heapProps)
+ID3D12ResourcePtr createBuffer(ID3D12Device5Ptr pDevice, uint64_t size, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initState, const D3D12_HEAP_PROPERTIES& heapProps)
 {
     D3D12_RESOURCE_DESC bufDesc = {};
     bufDesc.Alignment = 0;
@@ -265,7 +259,7 @@ ID3D12ResourcePtr createBuffer(ID3D12DevicePtr pDevice, uint64_t size, D3D12_RES
     return pBuffer;
 }
 
-ID3D12ResourcePtr createTriangleVB(ID3D12DevicePtr pDevice)
+ID3D12ResourcePtr createTriangleVB(ID3D12Device5Ptr pDevice)
 {
     const vec3 vertices[] =
     {
@@ -290,7 +284,7 @@ struct AccelerationStructureBuffers
     ID3D12ResourcePtr pInstanceDesc;    // Used only for top-level AS
 };
 
-AccelerationStructureBuffers createBottomLevelAS(ID3D12DevicePtr pDevice, ID3D12GraphicsCommandListPtr pCmdList, ID3D12ResourcePtr pVB)
+AccelerationStructureBuffers createBottomLevelAS(ID3D12Device5Ptr pDevice, ID3D12GraphicsCommandList4Ptr pCmdList, ID3D12ResourcePtr pVB)
 {
     D3D12_RAYTRACING_GEOMETRY_DESC geomDesc = {};
     geomDesc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
@@ -301,16 +295,15 @@ AccelerationStructureBuffers createBottomLevelAS(ID3D12DevicePtr pDevice, ID3D12
     geomDesc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
 
     // Get the size requirements for the scratch and AS buffers
-    D3D12_GET_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO_DESC prebuildDesc = {};
-    prebuildDesc.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-    prebuildDesc.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_NONE;
-    prebuildDesc.NumDescs = 1;
-    prebuildDesc.pGeometryDescs = &geomDesc;
-    prebuildDesc.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
+    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS inputs = {};
+    inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+    inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_NONE;
+    inputs.NumDescs = 1;
+    inputs.pGeometryDescs = &geomDesc;
+    inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
     
-    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO info;
-    ID3D12DeviceRaytracingPrototypePtr pRtDevice = pDevice;
-    pRtDevice->GetRaytracingAccelerationStructurePrebuildInfo(&prebuildDesc, &info);
+    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO info = {};
+    pDevice->GetRaytracingAccelerationStructurePrebuildInfo(&inputs, &info);
 
     // Create the buffers. They need to support UAV, and since we are going to immediately use them, we create them with an unordered-access state
     AccelerationStructureBuffers buffers;
@@ -319,20 +312,11 @@ AccelerationStructureBuffers createBottomLevelAS(ID3D12DevicePtr pDevice, ID3D12
 
     // Create the bottom-level AS
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC asDesc = {};
-    asDesc.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-    asDesc.pGeometryDescs = &geomDesc;
-    asDesc.DestAccelerationStructureData.StartAddress = buffers.pResult->GetGPUVirtualAddress();
-    asDesc.DestAccelerationStructureData.SizeInBytes = info.ResultDataMaxSizeInBytes;
+    asDesc.Inputs = inputs;
+    asDesc.DestAccelerationStructureData = buffers.pResult->GetGPUVirtualAddress();
+    asDesc.ScratchAccelerationStructureData = buffers.pScratch->GetGPUVirtualAddress();
 
-    asDesc.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_NONE;
-    asDesc.NumDescs = 1;
-    asDesc.ScratchAccelerationStructureData.StartAddress = buffers.pScratch->GetGPUVirtualAddress();
-    asDesc.ScratchAccelerationStructureData.SizeInBytes = info.ScratchDataSizeInBytes;
-
-    asDesc.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
-
-    ID3D12CommandListRaytracingPrototypePtr pRtCmdList = pCmdList;
-    pRtCmdList->BuildRaytracingAccelerationStructure(&asDesc);
+    pCmdList->BuildRaytracingAccelerationStructure(&asDesc, 0, nullptr);
 
     // We need to insert a UAV barrier before using the acceleration structures in a raytracing operation
     D3D12_RESOURCE_BARRIER uavBarrier = {};
@@ -343,18 +327,17 @@ AccelerationStructureBuffers createBottomLevelAS(ID3D12DevicePtr pDevice, ID3D12
     return buffers;
 }
 
-AccelerationStructureBuffers createTopLevelAS(ID3D12DevicePtr pDevice, ID3D12GraphicsCommandListPtr pCmdList, ID3D12ResourcePtr pBottomLevelAS, uint64_t& tlasSize)
+AccelerationStructureBuffers createTopLevelAS(ID3D12Device5Ptr pDevice, ID3D12GraphicsCommandList4Ptr pCmdList, ID3D12ResourcePtr pBottomLevelAS, uint64_t& tlasSize)
 {
     // First, get the size of the TLAS buffers and create them
-    D3D12_GET_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO_DESC prebuildDesc = {};
-    prebuildDesc.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-    prebuildDesc.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_NONE;
-    prebuildDesc.NumDescs = 1;
-    prebuildDesc.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
+    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS inputs = {};
+    inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+    inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_NONE;
+    inputs.NumDescs = 1;
+    inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
 
     D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO info;
-    ID3D12DeviceRaytracingPrototypePtr pRtDevice = pDevice;
-    pRtDevice->GetRaytracingAccelerationStructurePrebuildInfo(&prebuildDesc, &info);
+    pDevice->GetRaytracingAccelerationStructurePrebuildInfo(&inputs, &info);
 
     // Create the buffers
     AccelerationStructureBuffers buffers;
@@ -381,19 +364,12 @@ AccelerationStructureBuffers createTopLevelAS(ID3D12DevicePtr pDevice, ID3D12Gra
         
     // Create the TLAS
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC asDesc = {};
-    asDesc.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-    asDesc.DestAccelerationStructureData.StartAddress = buffers.pResult->GetGPUVirtualAddress();
-    asDesc.DestAccelerationStructureData.SizeInBytes = info.ResultDataMaxSizeInBytes;
+    asDesc.Inputs = inputs;
+    asDesc.Inputs.InstanceDescs = buffers.pInstanceDesc->GetGPUVirtualAddress();
+    asDesc.DestAccelerationStructureData = buffers.pResult->GetGPUVirtualAddress();
+    asDesc.ScratchAccelerationStructureData = buffers.pScratch->GetGPUVirtualAddress();
 
-    asDesc.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_NONE;
-    asDesc.InstanceDescs = buffers.pInstanceDesc->GetGPUVirtualAddress();
-    asDesc.NumDescs = 1;
-    asDesc.ScratchAccelerationStructureData.StartAddress = buffers.pScratch->GetGPUVirtualAddress();
-    asDesc.ScratchAccelerationStructureData.SizeInBytes = info.ScratchDataSizeInBytes;
-
-    asDesc.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
-    ID3D12CommandListRaytracingPrototypePtr pRtList = pCmdList;
-    pRtList->BuildRaytracingAccelerationStructure(&asDesc);
+    pCmdList->BuildRaytracingAccelerationStructure(&asDesc, 0, nullptr);
 
     // We need to insert a UAV barrier before using the acceleration structures in a raytracing operation
     D3D12_RESOURCE_BARRIER uavBarrier = {};
@@ -426,13 +402,13 @@ void DxrSample::createAccelerationStructures()
 //////////////////////////////////////////////////////////////////////////
 // Callbacks
 //////////////////////////////////////////////////////////////////////////
-void DxrSample::onLoad(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext)
+void DxrSample::onLoad(SampleCallbacks* pSample, const RenderContext::SharedPtr& pRenderContext)
 {
     initDXR(pSample->getWindow());      // Tutorial 02
     createAccelerationStructures();     // Tutorial 03
 }
 
-void DxrSample::onFrameRender(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext, Fbo::SharedPtr pTargetFbo)
+void DxrSample::onFrameRender(SampleCallbacks* pSample, const RenderContext::SharedPtr& pRenderContext, const Fbo::SharedPtr& pTargetFbo)
 {
     uint32_t rtvIndex = beginFrame();
     const float clearColor[4] = { 0.4f, 0.6f, 0.2f, 1.0f };
