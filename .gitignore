@@ -3,11 +3,7 @@
 *.sdf
 *.user
 *.suo
-FalcorRT.VC.db
-FalcorRT.VC.VC.opendb
 *.VC.opendb
 *.orig
-/pink_room/*
 *.VC.db
-Framework/Externals/
 .vs/
