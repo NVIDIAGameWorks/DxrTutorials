@@ -1,36 +1,30 @@
-/************************************************************************************************************************************\
-|*                                                                                                                                    *|
-|*     Copyright © 2018 NVIDIA Corporation.  All rights reserved.                                                                     *|
-|*                                                                                                                                    *|
-|*  NOTICE TO USER:                                                                                                                   *|
-|*                                                                                                                                    *|
-|*  This software is subject to NVIDIA ownership rights under U.S. and international Copyright laws.                                  *|
-|*                                                                                                                                    *|
-|*  This software and the information contained herein are PROPRIETARY and CONFIDENTIAL to NVIDIA                                     *|
-|*  and are being provided solely under the terms and conditions of an NVIDIA software license agreement                              *|
-|*  and / or non-disclosure agreement.  Otherwise, you have no rights to use or access this software in any manner.                   *|
-|*                                                                                                                                    *|
-|*  If not covered by the applicable NVIDIA software license agreement:                                                               *|
-|*  NVIDIA MAKES NO REPRESENTATION ABOUT THE SUITABILITY OF THIS SOFTWARE FOR ANY PURPOSE.                                            *|
-|*  IT IS PROVIDED "AS IS" WITHOUT EXPRESS OR IMPLIED WARRANTY OF ANY KIND.                                                           *|
-|*  NVIDIA DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,                                                                     *|
-|*  INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY, NONINFRINGEMENT, AND FITNESS FOR A PARTICULAR PURPOSE.                       *|
-|*  IN NO EVENT SHALL NVIDIA BE LIABLE FOR ANY SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES,                               *|
-|*  OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,  WHETHER IN AN ACTION OF CONTRACT,                         *|
-|*  NEGLIGENCE OR OTHER TORTIOUS ACTION,  ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOURCE CODE.            *|
-|*                                                                                                                                    *|
-|*  U.S. Government End Users.                                                                                                        *|
-|*  This software is a "commercial item" as that term is defined at 48 C.F.R. 2.101 (OCT 1995),                                       *|
-|*  consisting  of "commercial computer  software"  and "commercial computer software documentation"                                  *|
-|*  as such terms are  used in 48 C.F.R. 12.212 (SEPT 1995) and is provided to the U.S. Government only as a commercial end item.     *|
-|*  Consistent with 48 C.F.R.12.212 and 48 C.F.R. 227.7202-1 through 227.7202-4 (JUNE 1995),                                          *|
-|*  all U.S. Government End Users acquire the software with only those rights set forth herein.                                       *|
-|*                                                                                                                                    *|
-|*  Any use of this software in individual and commercial software must include,                                                      *|
-|*  in the user documentation and internal comments to the code,                                                                      *|
-|*  the above Disclaimer (as applicable) and U.S. Government End Users Notice.                                                        *|
-|*                                                                                                                                    *|
- \************************************************************************************************************************************/
+/***************************************************************************
+# Copyright (c) 2018, NVIDIA CORPORATION. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#  * Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+#  * Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#  * Neither the name of NVIDIA CORPORATION nor the names of its
+#    contributors may be used to endorse or promote products derived
+#    from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ``AS IS'' AND ANY
+# EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+# PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+# PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+# OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+***************************************************************************/
 #include "03-AccelerationStructure.h"
 
 //////////////////////////////////////////////////////////////////////////
@@ -91,7 +85,7 @@ ID3D12Device5Ptr createDevice(IDXGIFactory4Ptr pDxgiFactory)
         HRESULT hr = pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &features5, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS5));
         if (FAILED(hr) || features5.RaytracingTier == D3D12_RAYTRACING_TIER_NOT_SUPPORTED)
         {
-            logError("Raytracing is not supported on this device. Make sure your GPU supports DXR (such as Nvidia's Volta or Turing RTX) and you're on the latest drivers. The DXR fallback layer is not supported.");
+            msgBox("Raytracing is not supported on this device. Make sure your GPU supports DXR (such as Nvidia's Volta or Turing RTX) and you're on the latest drivers. The DXR fallback layer is not supported.");
             exit(1);
         }
         return pDevice;
@@ -155,9 +149,10 @@ uint64_t submitCommandList(ID3D12GraphicsCommandList4Ptr pCmdList, ID3D12Command
     return fenceValue;
 }
 
-void DxrSample::initDXR(const Window* pWindow)
+void Tutorial03::initDXR(HWND winHandle, uint32_t winWidth, uint32_t winHeight)
 {
-    mHwnd = pWindow->getApiHandle();
+    mHwnd = winHandle;
+    mSwapChainSize = uvec2(winWidth, winHeight);
 
     // Initialize the debug layer for debug builds
 #ifdef _DEBUG
@@ -172,13 +167,13 @@ void DxrSample::initDXR(const Window* pWindow)
     d3d_call(CreateDXGIFactory1(IID_PPV_ARGS(&pDxgiFactory)));
     mpDevice = createDevice(pDxgiFactory);
     mpCmdQueue = createCommandQueue(mpDevice);
-    mpSwapChain = createDxgiSwapChain(pDxgiFactory, mHwnd, pWindow->getClientAreaWidth(), pWindow->getClientAreaHeight(), DXGI_FORMAT_R8G8B8A8_UNORM, mpCmdQueue);
+    mpSwapChain = createDxgiSwapChain(pDxgiFactory, mHwnd, winWidth, winHeight, DXGI_FORMAT_R8G8B8A8_UNORM, mpCmdQueue);
 
     // Create a RTV descriptor heap
     mRtvHeap.pHeap = createDescriptorHeap(mpDevice, kRtvHeapSize, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, false);
 
     // Create the per-frame objects
-    for (uint32_t i = 0; i < arraysize(mFrameObjects); i++)
+    for (uint32_t i = 0; i < kDefaultSwapChainBuffers; i++)
     {
         d3d_call(mpDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&mFrameObjects[i].pCmdAllocator)));
         d3d_call(mpSwapChain->GetBuffer(i, IID_PPV_ARGS(&mFrameObjects[i].pSwapChainBuffer)));
@@ -193,12 +188,12 @@ void DxrSample::initDXR(const Window* pWindow)
     mFenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 }
 
-uint32_t DxrSample::beginFrame()
+uint32_t Tutorial03::beginFrame()
 {
     return mpSwapChain->GetCurrentBackBufferIndex();
 }
 
-void DxrSample::endFrame(uint32_t rtvIndex)
+void Tutorial03::endFrame(uint32_t rtvIndex)
 {
     resourceBarrier(mpCmdList, mFrameObjects[rtvIndex].pSwapChainBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
     mFenceValue = submitCommandList(mpCmdList, mpCmdQueue, mpFence, mFenceValue);
@@ -380,7 +375,7 @@ AccelerationStructureBuffers createTopLevelAS(ID3D12Device5Ptr pDevice, ID3D12Gr
     return buffers;
 }
 
-void DxrSample::createAccelerationStructures()
+void Tutorial03::createAccelerationStructures()
 {
     mpVertexBuffer = createTriangleVB(mpDevice);
     AccelerationStructureBuffers bottomLevelBuffers = createBottomLevelAS(mpDevice, mpCmdList, mpVertexBuffer);
@@ -402,13 +397,13 @@ void DxrSample::createAccelerationStructures()
 //////////////////////////////////////////////////////////////////////////
 // Callbacks
 //////////////////////////////////////////////////////////////////////////
-void DxrSample::onLoad(SampleCallbacks* pSample, const RenderContext::SharedPtr& pRenderContext)
+void Tutorial03::onLoad(HWND winHandle, uint32_t winWidth, uint32_t winHeight)
 {
-    initDXR(pSample->getWindow());      // Tutorial 02
-    createAccelerationStructures();     // Tutorial 03
+    initDXR(winHandle, winWidth, winHeight);    // Tutorial 02
+    createAccelerationStructures();             // Tutorial 03
 }
 
-void DxrSample::onFrameRender(SampleCallbacks* pSample, const RenderContext::SharedPtr& pRenderContext, const Fbo::SharedPtr& pTargetFbo)
+void Tutorial03::onFrameRender()
 {
     uint32_t rtvIndex = beginFrame();
     const float clearColor[4] = { 0.4f, 0.6f, 0.2f, 1.0f };
@@ -417,7 +412,7 @@ void DxrSample::onFrameRender(SampleCallbacks* pSample, const RenderContext::Sha
     endFrame(rtvIndex);
 }
 
-void DxrSample::onShutdown(SampleCallbacks* pSample)
+void Tutorial03::onShutdown()
 {
     // Wait for the command queue to finish execution
     mFenceValue++;
@@ -426,27 +421,7 @@ void DxrSample::onShutdown(SampleCallbacks* pSample)
     WaitForSingleObject(mFenceEvent, INFINITE);
 }
 
-bool DxrSample::onMouseEvent(SampleCallbacks* pSample, const MouseEvent& mouseEvent)
-{
-    return false;
-}
-
-bool DxrSample::onKeyEvent(SampleCallbacks* pSample, const KeyboardEvent& keyEvent)
-{
-    if (keyEvent.key == KeyboardEvent::Key::Escape && keyEvent.type == KeyboardEvent::Type::KeyPressed)
-    {
-        PostQuitMessage(0);
-        return true;
-    }
-    return false;
-}
-
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nShowCmd)
 {
-    DxrSample::UniquePtr pSample = std::make_unique<DxrSample>();
-    SampleConfig config;
-    config.windowDesc.title = "Tutorial 03 - Acceleration Structure";
-    config.flags = SampleConfig::Flags::DoNotCreateDevice;
-
-    Sample::run(config, pSample);
+    Framework::run(Tutorial03(), "Tutorial 03 - Acceleration Structure");
 }

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup>
+    <OutDir>$(SolutionDir)Bin\$(PlatformShortName)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)Bin\Int\$(PlatformShortName)\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <AdditionalIncludeDirectories>$(SolutionDir)\Framework\</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;GLM_FORCE_DEPTH_ZERO_TO_ONE;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+    </Link>
+    <Link>
+      <AdditionalDependencies>D3D12.lib;DXGI.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy /y $(SolutionDir)\Framework\Externals\dxcompiler\*.dll $(OutDir) &gt;nul
+IF not exist $(ProjectDir)\Data\ (exit /b 0)
+IF not exist $(OutDir)\Data\ ( mkdir $(OutDir)\Data &gt;nul )
+copy /y $(ProjectDir)\Data\*.* $(OutDir)\Data &gt;nul</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+</Project>

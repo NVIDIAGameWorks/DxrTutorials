@@ -1,38 +1,31 @@
-/************************************************************************************************************************************\
-|*                                                                                                                                    *|
-|*     Copyright © 2018 NVIDIA Corporation.  All rights reserved.                                                                     *|
-|*                                                                                                                                    *|
-|*  NOTICE TO USER:                                                                                                                   *|
-|*                                                                                                                                    *|
-|*  This software is subject to NVIDIA ownership rights under U.S. and international Copyright laws.                                  *|
-|*                                                                                                                                    *|
-|*  This software and the information contained herein are PROPRIETARY and CONFIDENTIAL to NVIDIA                                     *|
-|*  and are being provided solely under the terms and conditions of an NVIDIA software license agreement                              *|
-|*  and / or non-disclosure agreement.  Otherwise, you have no rights to use or access this software in any manner.                   *|
-|*                                                                                                                                    *|
-|*  If not covered by the applicable NVIDIA software license agreement:                                                               *|
-|*  NVIDIA MAKES NO REPRESENTATION ABOUT THE SUITABILITY OF THIS SOFTWARE FOR ANY PURPOSE.                                            *|
-|*  IT IS PROVIDED "AS IS" WITHOUT EXPRESS OR IMPLIED WARRANTY OF ANY KIND.                                                           *|
-|*  NVIDIA DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,                                                                     *|
-|*  INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY, NONINFRINGEMENT, AND FITNESS FOR A PARTICULAR PURPOSE.                       *|
-|*  IN NO EVENT SHALL NVIDIA BE LIABLE FOR ANY SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES,                               *|
-|*  OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,  WHETHER IN AN ACTION OF CONTRACT,                         *|
-|*  NEGLIGENCE OR OTHER TORTIOUS ACTION,  ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOURCE CODE.            *|
-|*                                                                                                                                    *|
-|*  U.S. Government End Users.                                                                                                        *|
-|*  This software is a "commercial item" as that term is defined at 48 C.F.R. 2.101 (OCT 1995),                                       *|
-|*  consisting  of "commercial computer  software"  and "commercial computer software documentation"                                  *|
-|*  as such terms are  used in 48 C.F.R. 12.212 (SEPT 1995) and is provided to the U.S. Government only as a commercial end item.     *|
-|*  Consistent with 48 C.F.R.12.212 and 48 C.F.R. 227.7202-1 through 227.7202-4 (JUNE 1995),                                          *|
-|*  all U.S. Government End Users acquire the software with only those rights set forth herein.                                       *|
-|*                                                                                                                                    *|
-|*  Any use of this software in individual and commercial software must include,                                                      *|
-|*  in the user documentation and internal comments to the code,                                                                      *|
-|*  the above Disclaimer (as applicable) and U.S. Government End Users Notice.                                                        *|
-|*                                                                                                                                    *|
- \************************************************************************************************************************************/
+/***************************************************************************
+# Copyright (c) 2018, NVIDIA CORPORATION. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#  * Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+#  * Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#  * Neither the name of NVIDIA CORPORATION nor the names of its
+#    contributors may be used to endorse or promote products derived
+#    from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ``AS IS'' AND ANY
+# EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+# PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+# PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+# OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+***************************************************************************/
 #include "12-PerGeometryHitShader.h"
-#include "Externals/DXCAPI/dxcapi.use.h"
 #include <sstream>
 
 static dxc::DxcDllSupport gDxcDllHelper;
@@ -100,7 +93,7 @@ ID3D12Device5Ptr createDevice(IDXGIFactory4Ptr pDxgiFactory)
         HRESULT hr = pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &features5, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS5));
         if (FAILED(hr) || features5.RaytracingTier == D3D12_RAYTRACING_TIER_NOT_SUPPORTED)
         {
-            logError("Raytracing is not supported on this device. Make sure your GPU supports DXR (such as Nvidia's Volta or Turing RTX) and you're on the latest drivers. The DXR fallback layer is not supported.");
+            msgBox("Raytracing is not supported on this device. Make sure your GPU supports DXR (such as Nvidia's Volta or Turing RTX) and you're on the latest drivers. The DXR fallback layer is not supported.");
             exit(1);
         }
         return pDevice;
@@ -164,9 +157,10 @@ uint64_t submitCommandList(ID3D12GraphicsCommandList4Ptr pCmdList, ID3D12Command
     return fenceValue;
 }
 
-void DxrSample::initDXR(const Window* pWindow)
+void Tutorial12::initDXR(HWND winHandle, uint32_t winWidth, uint32_t winHeight)
 {
-    mHwnd = pWindow->getApiHandle();
+    mHwnd = winHandle;
+    mSwapChainSize = uvec2(winWidth, winHeight);
 
     // Initialize the debug layer for debug builds
 #ifdef _DEBUG
@@ -181,7 +175,7 @@ void DxrSample::initDXR(const Window* pWindow)
     d3d_call(CreateDXGIFactory1(IID_PPV_ARGS(&pDxgiFactory)));
     mpDevice = createDevice(pDxgiFactory);
     mpCmdQueue = createCommandQueue(mpDevice);
-    mpSwapChain = createDxgiSwapChain(pDxgiFactory, mHwnd, pWindow->getClientAreaWidth(), pWindow->getClientAreaHeight(), DXGI_FORMAT_R8G8B8A8_UNORM, mpCmdQueue);
+    mpSwapChain = createDxgiSwapChain(pDxgiFactory, mHwnd, winWidth, winHeight, DXGI_FORMAT_R8G8B8A8_UNORM, mpCmdQueue);
 
     // Create a RTV descriptor heap
     mRtvHeap.pHeap = createDescriptorHeap(mpDevice, kRtvHeapSize, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, false);
@@ -202,7 +196,7 @@ void DxrSample::initDXR(const Window* pWindow)
     mFenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 }
 
-uint32_t DxrSample::beginFrame()
+uint32_t Tutorial12::beginFrame()
 {
     // Bind the descriptor heaps
     ID3D12DescriptorHeap* heaps[] = { mpSrvUavHeap };
@@ -210,7 +204,7 @@ uint32_t DxrSample::beginFrame()
     return mpSwapChain->GetCurrentBackBufferIndex();
 }
 
-void DxrSample::endFrame(uint32_t rtvIndex)
+void Tutorial12::endFrame(uint32_t rtvIndex)
 {
     resourceBarrier(mpCmdList, mFrameObjects[rtvIndex].pSwapChainBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PRESENT);
     mFenceValue = submitCommandList(mpCmdList, mpCmdQueue, mpFence, mFenceValue);
@@ -436,7 +430,7 @@ AccelerationStructureBuffers createTopLevelAS(ID3D12Device5Ptr pDevice, ID3D12Gr
     return buffers;
 }
 
-void DxrSample::createAccelerationStructures()
+void Tutorial12::createAccelerationStructures()
 {
     mpVertexBuffer[0] = createTriangleVB(mpDevice);
     mpVertexBuffer[1] = createPlaneVB(mpDevice);
@@ -522,7 +516,7 @@ ID3D12RootSignaturePtr createRootSignature(ID3D12Device5Ptr pDevice, const D3D12
     if (FAILED(hr))
     {
         std::string msg = convertBlobToString(pErrorBlob.GetInterfacePtr());
-        logError(msg);
+        msgBox(msg);
         return nullptr;
     }
     ID3D12RootSignaturePtr pRootSig;
@@ -726,7 +720,7 @@ struct PipelineConfig
     D3D12_STATE_SUBOBJECT subobject = {};
 };
 
-void DxrSample::createRtPipelineState()
+void Tutorial12::createRtPipelineState()
 {
     // Need 13 subobjects:
     //  1 for DXIL library
@@ -809,7 +803,7 @@ void DxrSample::createRtPipelineState()
 //////////////////////////////////////////////////////////////////////////
 // Tutorial 05
 //////////////////////////////////////////////////////////////////////////
-void DxrSample::createShaderTable()
+void Tutorial12::createShaderTable()
 {
     /** The shader-table layout is as follows:
         Entry 0 - Ray-gen program
@@ -877,7 +871,7 @@ void DxrSample::createShaderTable()
 //////////////////////////////////////////////////////////////////////////
 // Tutorial 06
 //////////////////////////////////////////////////////////////////////////
-void DxrSample::createShaderResources(const Window* pWindow)
+void Tutorial12::createShaderResources()
 {
     // Create the output resource. The dimensions and format should match the swap-chain
     D3D12_RESOURCE_DESC resDesc = {};
@@ -885,11 +879,11 @@ void DxrSample::createShaderResources(const Window* pWindow)
     resDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
     resDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // The backbuffer is actually DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, but sRGB formats can't be used with UAVs. We will convert to sRGB ourselves in the shader
     resDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-    resDesc.Height = pWindow->getClientAreaHeight();
+    resDesc.Height = mSwapChainSize.y;
     resDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
     resDesc.MipLevels = 1;
     resDesc.SampleDesc.Count = 1;
-    resDesc.Width = pWindow->getClientAreaWidth();
+    resDesc.Width = mSwapChainSize.x;
     d3d_call(mpDevice->CreateCommittedResource(&kDefaultHeapProps, D3D12_HEAP_FLAG_NONE, &resDesc, D3D12_RESOURCE_STATE_COPY_SOURCE, nullptr, IID_PPV_ARGS(&mpOutputResource))); // Starting as copy-source to simplify onFrameRender()
 
     // Create an SRV/UAV descriptor heap. Need 2 entries - 1 SRV for the scene and 1 UAV for the output
@@ -913,29 +907,29 @@ void DxrSample::createShaderResources(const Window* pWindow)
 //////////////////////////////////////////////////////////////////////////
 // Tutorial 10
 //////////////////////////////////////////////////////////////////////////
-void DxrSample::createConstantBuffers()
+void Tutorial12::createConstantBuffers()
 {
-    // The shader declares each CB with 3 float3. However, due to HLSL packing rules, we create the CB with float4 (each float3 needs to start on a 16-byte boundary)
-    float4 bufferData[] = {
+    // The shader declares each CB with 3 float3. However, due to HLSL packing rules, we create the CB with vec4 (each float3 needs to start on a 16-byte boundary)
+    vec4 bufferData[] = {
         // Instance 0
-        float4(1.0f, 0.0f, 0.0f, 1.0f),
-        float4(1.0f, 1.0f, 0.0f, 1.0f),
-        float4(1.0f, 0.0f, 1.0f, 1.0f),
+        vec4(1.0f, 0.0f, 0.0f, 1.0f),
+        vec4(1.0f, 1.0f, 0.0f, 1.0f),
+        vec4(1.0f, 0.0f, 1.0f, 1.0f),
 
         // Instance 1
-        float4(0.0f, 1.0f, 0.0f, 1.0f),
-        float4(0.0f, 1.0f, 1.0f, 1.0f),
-        float4(1.0f, 1.0f, 0.0f, 1.0f),
+        vec4(0.0f, 1.0f, 0.0f, 1.0f),
+        vec4(0.0f, 1.0f, 1.0f, 1.0f),
+        vec4(1.0f, 1.0f, 0.0f, 1.0f),
 
         // Instance 2
-        float4(0.0f, 0.0f, 1.0f, 1.0f),
-        float4(1.0f, 0.0f, 1.0f, 1.0f),
-        float4(0.0f, 1.0f, 1.0f, 1.0f),
+        vec4(0.0f, 0.0f, 1.0f, 1.0f),
+        vec4(1.0f, 0.0f, 1.0f, 1.0f),
+        vec4(0.0f, 1.0f, 1.0f, 1.0f),
     };
 
     for(uint32_t i = 0 ; i < 3 ; i++)
     {
-        const uint32_t bufferSize = sizeof(float4) * 3;
+        const uint32_t bufferSize = sizeof(vec4) * 3;
         mpConstantBuffer[i] = createBuffer(mpDevice, bufferSize, D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_GENERIC_READ, kUploadHeapProps);
         uint8_t* pData;
         d3d_call(mpConstantBuffer[i]->Map(0, nullptr, (void**)&pData));
@@ -947,25 +941,25 @@ void DxrSample::createConstantBuffers()
 //////////////////////////////////////////////////////////////////////////
 // Callbacks
 //////////////////////////////////////////////////////////////////////////
-void DxrSample::onLoad(SampleCallbacks* pSample, const RenderContext::SharedPtr& pRenderContext)
+void Tutorial12::onLoad(HWND winHandle, uint32_t winWidth, uint32_t winHeight)
 {
-    initDXR(pSample->getWindow());                  // Tutorial 02
+    initDXR(winHandle, winWidth, winHeight);        // Tutorial 02
     createAccelerationStructures();                 // Tutorial 03
     createRtPipelineState();                        // Tutorial 04
-    createShaderResources(pSample->getWindow());    // Tutorial 06
+    createShaderResources();                        // Tutorial 06
     createConstantBuffers();                        // Tutorial 10. Yes, we need to do it before creating the shader-table
     createShaderTable();                            // Tutorial 05
 }
 
-void DxrSample::onFrameRender(SampleCallbacks* pSample, const RenderContext::SharedPtr& pRenderContext, const Fbo::SharedPtr& pTargetFbo)
+void Tutorial12::onFrameRender()
 {
     uint32_t rtvIndex = beginFrame();
 
     // Let's raytrace
     resourceBarrier(mpCmdList, mpOutputResource, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     D3D12_DISPATCH_RAYS_DESC raytraceDesc = {};
-    raytraceDesc.Width = pSample->getWindow()->getClientAreaWidth();
-    raytraceDesc.Height = pSample->getWindow()->getClientAreaHeight();
+    raytraceDesc.Width = mSwapChainSize.x;
+    raytraceDesc.Height = mSwapChainSize.y;
     raytraceDesc.Depth = 1;
 
     // RayGen is the first entry in the shader-table
@@ -999,7 +993,7 @@ void DxrSample::onFrameRender(SampleCallbacks* pSample, const RenderContext::Sha
     endFrame(rtvIndex);
 }
 
-void DxrSample::onShutdown(SampleCallbacks* pSample)
+void Tutorial12::onShutdown()
 {
     // Wait for the command queue to finish execution
     mFenceValue++;
@@ -1008,27 +1002,7 @@ void DxrSample::onShutdown(SampleCallbacks* pSample)
     WaitForSingleObject(mFenceEvent, INFINITE);
 }
 
-bool DxrSample::onMouseEvent(SampleCallbacks* pSample, const MouseEvent& mouseEvent)
-{
-    return false;
-}
-
-bool DxrSample::onKeyEvent(SampleCallbacks* pSample, const KeyboardEvent& keyEvent)
-{
-    if (keyEvent.key == KeyboardEvent::Key::Escape && keyEvent.type == KeyboardEvent::Type::KeyPressed)
-    {
-        PostQuitMessage(0);
-        return true;
-    }
-    return false;
-}
-
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nShowCmd)
 {
-    DxrSample::UniquePtr pSample = std::make_unique<DxrSample>();
-    SampleConfig config;
-    config.windowDesc.title = "Tutorial 12 - Per-Geometry Hit Shader";
-    config.flags = SampleConfig::Flags::DoNotCreateDevice;
-
-    Sample::run(config, pSample);
+    Framework::run(Tutorial12(), "Tutorial 12 - Per-Geometry Hit Shader");
 }
