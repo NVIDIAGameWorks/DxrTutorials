@@ -28,6 +28,10 @@
 #include "Framework.h"
 #include <locale>
 #include <codecvt>
+#include <iostream>
+#include <fstream>
+#include <string>
+#include "Tutorials/14-Refit/ImageDataHandler.h"
 
 namespace
 {
@@ -44,8 +48,19 @@ namespace
             PostQuitMessage(0);
             return 0;
         case WM_KEYDOWN:
-            if (wParam == VK_ESCAPE) PostQuitMessage(0);
-            return 0;
+			switch (wParam)
+			{
+				case VK_ESCAPE:
+				{
+					PostQuitMessage(0);
+				}
+				case VK_F1:
+				{
+					ImageDataHandler imgDataHandler;
+					imgDataHandler.generateBitmap();
+				}
+			}
+			return 0;
         default:
             return DefWindowProc(hwnd, msg, wParam, lParam);
         }
