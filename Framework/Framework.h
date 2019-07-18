@@ -80,8 +80,6 @@ class Framework
 {
 public:
     static void run(Tutorial& tutorial, const std::string& winTitle, uint32_t width = 1920, uint32_t height = 1200);
-	static void saveScreenshot(char* filename);
-	static void setInt(unsigned char* mem, int data);
 };
 
 static const uint32_t kDefaultSwapChainBuffers = 3;

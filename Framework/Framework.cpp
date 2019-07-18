@@ -33,6 +33,8 @@
 #include <string>
 #include "Tutorials/14-Refit/ImageDataHandler.h"
 
+//#define OFFSCREEN_RENDER
+
 namespace
 {
     HWND gWinHandle = nullptr;
@@ -167,12 +169,17 @@ void Framework::run(Tutorial& tutorial, const std::string& winTitle, uint32_t wi
     tutorial.onLoad(gWinHandle, width, height);
     
     // Show the window
-    ShowWindow(gWinHandle, SW_SHOWNORMAL);
+	#ifndef OFFSCREEN_RENDER
+	ShowWindow(gWinHandle, SW_SHOWNORMAL);
+	#endif
 
     // Start the msgLoop()
     msgLoop(tutorial);
 
     // Cleanup
     tutorial.onShutdown();
-    DestroyWindow(gWinHandle);
+
+	#ifndef OFFSCREEN_RENDER
+	DestroyWindow(gWinHandle);
+	#endif
 }
