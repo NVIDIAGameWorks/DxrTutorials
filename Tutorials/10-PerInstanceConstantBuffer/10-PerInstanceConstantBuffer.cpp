@@ -214,7 +214,7 @@ void Tutorial10::endFrame(uint32_t rtvIndex)
     uint32_t bufferIndex = mpSwapChain->GetCurrentBackBufferIndex();
 
     // Make sure we have the new back-buffer is ready
-    if (mFenceValue > kDefaultSwapChainBuffers)
+    if (mFenceValue >= kDefaultSwapChainBuffers)
     {
         mpFence->SetEventOnCompletion(mFenceValue - kDefaultSwapChainBuffers + 1, mFenceEvent);
         WaitForSingleObject(mFenceEvent, INFINITE);
