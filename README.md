@@ -5,8 +5,6 @@ Under the `Tutorials` folder you can find Word documents going over the code, ex
 
 Requirements:
 - A GPU that supports DXR (Such as NVIDIA's Volta or Turing hardware)
-- Windows 10 RS5 (version 1809)
+- Windows 10 RS5 (version 1809) or newer
 - [Windows 10 SDK version 1809 (10.0.17763.0)](https://developer.microsoft.com/en-us/windows/downloads/sdk-archive)
-- Visual Studio 2017
-
-Open the solution, build it, knock yourself out
+- Visual Studio 2019
