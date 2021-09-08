@@ -91,13 +91,14 @@ ID3D12Device5Ptr createDevice(IDXGIFactory4Ptr pDxgiFactory)
 
         D3D12_FEATURE_DATA_D3D12_OPTIONS5 features5;
         HRESULT hr = pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &features5, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS5));
-        if (FAILED(hr) || features5.RaytracingTier == D3D12_RAYTRACING_TIER_NOT_SUPPORTED)
+        if (SUCCEEDED(hr) && features5.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED)
         {
-            msgBox("Raytracing is not supported on this device. Make sure your GPU supports DXR (such as Nvidia's Volta or Turing RTX) and you're on the latest drivers. The DXR fallback layer is not supported.");
-            exit(1);
+            return pDevice;
         }
-        return pDevice;
     }
+
+    msgBox("Raytracing is not supported on this device. Make sure your GPU supports DXR (such as Nvidia's Volta or Turing RTX) and you're on the latest drivers. The DXR fallback layer is not supported.");
+    exit(1);
     return nullptr;
 }
 
