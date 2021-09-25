@@ -28,6 +28,12 @@
 #include "Framework.h"
 #include <locale>
 #include <codecvt>
+#include <iostream>
+#include <fstream>
+#include <string>
+#include "Tutorials/14-Refit/ImageDataHandler.h"
+
+//#define OFFSCREEN_RENDER
 
 namespace
 {
@@ -44,8 +50,19 @@ namespace
             PostQuitMessage(0);
             return 0;
         case WM_KEYDOWN:
-            if (wParam == VK_ESCAPE) PostQuitMessage(0);
-            return 0;
+			switch (wParam)
+			{
+				case VK_ESCAPE:
+				{
+					PostQuitMessage(0);
+				}
+				case VK_F1:
+				{
+					ImageDataHandler imgDataHandler;
+					imgDataHandler.generateBitmap();
+				}
+			}
+			return 0;
         default:
             return DefWindowProc(hwnd, msg, wParam, lParam);
         }
@@ -152,12 +169,17 @@ void Framework::run(Tutorial& tutorial, const std::string& winTitle, uint32_t wi
     tutorial.onLoad(gWinHandle, width, height);
     
     // Show the window
-    ShowWindow(gWinHandle, SW_SHOWNORMAL);
+	#ifndef OFFSCREEN_RENDER
+	ShowWindow(gWinHandle, SW_SHOWNORMAL);
+	#endif
 
     // Start the msgLoop()
     msgLoop(tutorial);
 
     // Cleanup
     tutorial.onShutdown();
-    DestroyWindow(gWinHandle);
+
+	#ifndef OFFSCREEN_RENDER
+	DestroyWindow(gWinHandle);
+	#endif
 }

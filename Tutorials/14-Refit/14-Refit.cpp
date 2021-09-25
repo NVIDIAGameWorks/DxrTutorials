@@ -28,6 +28,8 @@
 #include "14-Refit.h"
 #include <sstream>
 
+UINT32* pPixelData;
+
 static dxc::DxcDllSupport gDxcDllHelper;
 MAKE_SMART_COM_PTR(IDxcCompiler);
 MAKE_SMART_COM_PTR(IDxcLibrary);
@@ -1057,8 +1059,74 @@ void Tutorial14::onFrameRender()
     resourceBarrier(mpCmdList, mFrameObjects[rtvIndex].pSwapChainBuffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_COPY_DEST);
     mpCmdList->CopyResource(mFrameObjects[rtvIndex].pSwapChainBuffer, mpOutputResource);
 
+	extractImageDataFromSwapchain();
+
     endFrame(rtvIndex);
 }
+
+/***********************************************************************************/
+/***********************************************************************************/
+void Tutorial14::extractImageDataFromSwapchain()
+{
+	const D3D12_HEAP_PROPERTIES heapProperties = {
+		D3D12_HEAP_TYPE_READBACK,
+		D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+		D3D12_MEMORY_POOL_UNKNOWN,
+		0,
+		0
+	};
+	
+	D3D12_RESOURCE_DESC resDesc = {};
+	resDesc.DepthOrArraySize = 1;
+	resDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+	resDesc.Format = DXGI_FORMAT_UNKNOWN;
+	resDesc.Height = 1;
+	resDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+	resDesc.MipLevels = 1;
+	resDesc.SampleDesc.Count = 1;
+	resDesc.Width = ((UINT64)mSwapChainSize.x * (UINT64)mSwapChainSize.y)*4;
+
+	d3d_call(mpDevice->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &resDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&dstResource)));
+	
+	D3D12_SUBRESOURCE_FOOTPRINT subresFootprint;
+	subresFootprint.Depth = 1;
+	subresFootprint.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	subresFootprint.Width = mSwapChainSize.x;
+	subresFootprint.Height = mSwapChainSize.y;
+	subresFootprint.RowPitch = mSwapChainSize.x * 4;
+
+	D3D12_PLACED_SUBRESOURCE_FOOTPRINT placedSubresFootprint;
+	placedSubresFootprint.Footprint = subresFootprint;
+	placedSubresFootprint.Offset = 0;
+
+	D3D12_TEXTURE_COPY_LOCATION copyLocationDst = {};
+	copyLocationDst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+	copyLocationDst.pResource = dstResource;
+	copyLocationDst.PlacedFootprint = placedSubresFootprint;
+
+	D3D12_TEXTURE_COPY_LOCATION copyLocationSrc = {};
+	copyLocationSrc.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+	copyLocationSrc.pResource = mpOutputResource;
+	copyLocationSrc.SubresourceIndex = 0;
+	
+	mpCmdList->CopyTextureRegion(&copyLocationDst, 0, 0, 0, &copyLocationSrc, 0);
+
+	mFenceValue = submitCommandList(mpCmdList, mpCmdQueue, mpFence, mFenceValue);
+
+	mpFence->SetEventOnCompletion(mFenceValue, mFenceEvent);
+	WaitForSingleObject(mFenceEvent, INFINITE);
+
+	UINT32* pPixelDataBegin;
+
+	dstResource->Map(0, nullptr, reinterpret_cast<void**>(&pPixelDataBegin));
+	
+	pPixelDataBegin[0];
+	
+	pPixelData = pPixelDataBegin;
+}
+/***********************************************************************************/
+/***********************************************************************************/
+
 
 void Tutorial14::onShutdown()
 {

@@ -18,10 +18,10 @@
       <AdditionalDependencies>D3D12.lib;DXGI.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy /y $(SolutionDir)\Framework\Externals\dxcompiler\*.dll $(OutDir) &gt;nul
-IF not exist $(ProjectDir)\Data\ (exit /b 0)
-IF not exist $(OutDir)\Data\ ( mkdir $(OutDir)\Data &gt;nul )
-copy /y $(ProjectDir)\Data\*.* $(OutDir)\Data &gt;nul</Command>
+      <Command>copy /y "$(SolutionDir)\Framework\Externals\dxcompiler\*.dll" "$(OutDir)" &gt;nul
+IF not exist "$(ProjectDir)\Data\" (exit /b 0)
+IF not exist "$(OutDir)\Data\" ( mkdir "$(OutDir)\Data" &gt;nul )
+copy /y "$(ProjectDir)\Data\*.*" "$(OutDir)\Data" &gt;nul</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
 </Project>

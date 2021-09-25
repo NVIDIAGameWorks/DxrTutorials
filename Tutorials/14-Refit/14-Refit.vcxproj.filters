@@ -7,9 +7,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="14-Refit.cpp" />
+    <ClCompile Include="ImageDataHandler.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="14-Refit.h" />
+    <ClInclude Include="ImageDataHandler.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Data\14-Shaders.hlsl">

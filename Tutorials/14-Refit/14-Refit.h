@@ -27,6 +27,7 @@
  ***************************************************************************/
 #pragma once
 #include "Framework.h"
+#include "ImageDataHandler.h"
 
 class Tutorial14 : public Tutorial
 {
@@ -38,9 +39,12 @@ public:
         ID3D12ResourcePtr pInstanceDesc;    // Used only for top-level AS
     };
 
+
     void onLoad(HWND winHandle, uint32_t winWidth, uint32_t winHeight) override;
-    void onFrameRender() override;
+	void onFrameRender() override;
+	void extractImageDataFromSwapchain();
     void onShutdown() override;
+
 private:
     //////////////////////////////////////////////////////////////////////////
     // Tutorial 02 code
@@ -57,6 +61,7 @@ private:
     ID3D12FencePtr mpFence;
     HANDLE mFenceEvent;
     uint64_t mFenceValue = 0;
+	ID3D12ResourcePtr dstResource;
 
     struct
     {
